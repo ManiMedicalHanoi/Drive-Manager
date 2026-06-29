@@ -298,6 +298,36 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 
 /* toast */
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--navy);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);z-index:300;display:flex;align-items:center;gap:11px;transition:transform .4s var(--ease-spring);max-width:90vw}
+
+/* ===== MINI UPLOAD TRACKER (nổi góc dưới-phải) ===== */
+.uptracker{position:fixed;right:22px;bottom:22px;z-index:260;width:340px;max-width:calc(100vw - 28px);background:#fff;border-radius:16px;box-shadow:var(--shadow-xl);overflow:hidden;display:none;animation:dialogIn .3s var(--ease-spring)}
+.uptracker.show{display:block}
+.ut-head{display:flex;align-items:center;gap:11px;padding:13px 15px;background:linear-gradient(100deg,var(--navy),var(--blue));color:#fff;cursor:pointer}
+.ut-head .ut-ic{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;flex-shrink:0}
+.ut-head .ut-ic svg{width:17px;height:17px}
+.ut-head .ut-ic.spinning svg{animation:bob 1.2s ease-in-out infinite}
+.ut-head .ut-t{flex:1;min-width:0}
+.ut-head .ut-t b{font-size:13.5px;font-weight:700;display:block}
+.ut-head .ut-t small{font-size:11px;opacity:.8}
+.ut-head .ut-toggle{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12);flex-shrink:0}
+.ut-head .ut-toggle svg{width:16px;height:16px;transition:transform .2s}
+.uptracker.collapsed .ut-toggle svg{transform:rotate(180deg)}
+.ut-body{max-height:260px;overflow-y:auto;padding:8px;transition:max-height .25s var(--ease)}
+.uptracker.collapsed .ut-body{max-height:0;padding:0;overflow:hidden}
+.ut-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px}
+.ut-item:hover{background:var(--pale)}
+.ut-item .uti-ic{width:30px;height:30px;border-radius:8px;background:var(--pale);display:grid;place-items:center;color:var(--blue);flex-shrink:0}
+.ut-item .uti-ic svg{width:15px;height:15px}
+.ut-item .uti-info{flex:1;min-width:0}
+.ut-item .uti-info b{font-size:12px;font-weight:600;color:var(--navy);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ut-item .uti-info .uti-sub{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.ut-item .uti-bar{height:4px;border-radius:4px;background:#eef2f9;margin-top:4px;overflow:hidden}
+.ut-item .uti-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--yellow));border-radius:4px;width:0;transition:width .3s}
+.ut-item .uti-st{flex-shrink:0;font-size:14px;display:grid;place-items:center;width:20px}
+.ut-item.done .uti-st{color:var(--success)}.ut-item.err .uti-st{color:var(--danger)}.ut-item.go .uti-st{color:var(--blue)}
+.ut-foot{padding:8px 12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted)}
+.ut-foot button{font-size:11.5px;font-weight:700;color:var(--blue);padding:4px 8px;border-radius:7px}
+.ut-foot button:hover{background:var(--pale)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--danger)}.toast.ok{background:var(--success)}
 .toast svg{width:19px;height:19px;flex-shrink:0}
@@ -457,6 +487,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- MINI UPLOAD TRACKER -->
+<div class="uptracker" id="upTracker">
+  <div class="ut-head" onclick="toggleTracker()">
+    <div class="ut-ic spinning" id="utIc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+    <div class="ut-t"><b id="utTitle">Đang tải lên…</b><small id="utSub">0/0 hoàn tất</small></div>
+    <div class="ut-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></div>
+  </div>
+  <div class="ut-body" id="utBody"></div>
+  <div class="ut-foot"><span id="utFoot"></span><button id="utClear" onclick="clearFinishedJobs()" style="display:none">Xoá mục đã xong</button></div>
+</div>
 <script>
 /* ════════════════════════════════════════════════════════════
    MMH DRIVE MANAGER — Frontend logic
@@ -548,7 +589,7 @@ async function init(){
     if(!r||!r.ok)throw new Error(r&&r.error||'Không tải được cây thư mục');
     S.tree=r.tree;
     renderTree();
-    document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';
+    document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' nhóm';
     await openFolder(S.tree.id,true);
     loadMarquee();
     document.getElementById('loadScreen').classList.add('hide');
@@ -595,9 +636,10 @@ function choosePic(name,email,el){
   closeDialog();toast('Xin chào '+name);
 }
 function changePic(){promptPic();}
-function countNodes(n){let c=0;(function w(x){(x.folders||[]).forEach(f=>{c++;w(f)})})(n);return c;}
+function countNodes(n){return (n.folders||[]).length;}
 
-/* ---------- TREE SIDEBAR ---------- */
+/* ---------- TREE SIDEBAR (lazy-load) ---------- */
+const _childCache={}; // id → mảng folder con đã tải
 function renderTree(){
   const root=S.tree;
   document.getElementById('tree').innerHTML=
@@ -607,20 +649,45 @@ function renderTree(){
      </div>`;
 }
 function treeNode(n){
-  const has=(n.folders||[]).length>0;
+  const has=n.hasChildren===true||(n.folders&&n.folders.length>0);
   const layerBadge=n.layer===1?`<span class="lbadge">L1</span>`:'';
-  return `<div class="tnode" data-id="${n.id}">
+  const kidsLoaded=n.folders&&n.folders.length>0;
+  return `<div class="tnode" data-id="${n.id}" data-has="${has?1:0}" data-loaded="${kidsLoaded?1:0}">
     <div class="trow" onclick="treeClick(event,'${n.id}',${has})">
-      <span class="tn-tw ${has?'':'leaf'}" onclick="treeToggle(event,this)">${has?I.chevR:''}</span>
+      <span class="tn-tw ${has?'':'leaf'}" onclick="treeToggle(event,'${n.id}')">${has?I.chevR:''}</span>
       <span class="tn-ic">${I.folder}</span>
       <span class="tn-name">${esc(n.name)}</span>${layerBadge}
-      ${has?`<span class="tn-count">${n.folders.length}</span>`:''}
     </div>
-    ${has?`<div class="tchildren">${n.folders.map(c=>treeNode(c)).join('')}</div>`:''}
+    <div class="tchildren">${kidsLoaded?n.folders.map(c=>treeNode(c)).join(''):''}</div>
   </div>`;
 }
-function treeClick(e,id,has){e.stopPropagation();const node=e.currentTarget.closest('.tnode');if(has&&!node.classList.contains('open'))node.classList.add('open');openFolder(id);}
-function treeToggle(e,el){e.stopPropagation();el.closest('.tnode').classList.toggle('open');}
+async function ensureChildren(id,node){
+  if(node.dataset.loaded==='1')return;
+  const tw=node.querySelector(':scope > .trow > .tn-tw');
+  const prev=tw?tw.innerHTML:'';
+  if(tw)tw.innerHTML=miniSpin();
+  try{
+    let kids=_childCache[id];
+    if(!kids){const r=await apiGet({action:'children',id});kids=(r&&r.folders)||[];_childCache[id]=kids;}
+    const box=node.querySelector(':scope > .tchildren');
+    box.innerHTML=kids.map(c=>treeNode(c)).join('');
+    node.dataset.loaded='1';
+  }catch(e){toast('Lỗi tải thư mục con',true);}
+  if(tw)tw.innerHTML=prev||I.chevR;
+}
+async function treeClick(e,id,has){
+  e.stopPropagation();
+  const node=e.currentTarget.closest('.tnode');
+  if(has){await ensureChildren(id,node);if(!node.classList.contains('open'))node.classList.add('open');}
+  openFolder(id);
+}
+async function treeToggle(e,id){
+  e.stopPropagation();
+  const node=e.target.closest('.tnode');
+  if(!node.classList.contains('open')){await ensureChildren(id,node);node.classList.add('open');}
+  else{node.classList.remove('open');}
+}
+function miniSpin(){return '<span style="display:inline-block;width:11px;height:11px;border:2px solid var(--lb1);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite"></span>';}
 function highlightTree(id){
   document.querySelectorAll('.trow.active').forEach(r=>r.classList.remove('active'));
   const node=document.querySelector(`.tnode[data-id="${id}"]`);
@@ -922,7 +989,7 @@ async function doBatchRename(){
 let _fileInput;
 function pickFiles(){
   if(!_fileInput){_fileInput=document.createElement('input');_fileInput.type='file';_fileInput.multiple=true;_fileInput.style.display='none';
-    _fileInput.addEventListener('change',()=>{if(_fileInput.files.length)handleUpload([..._fileInput.files]);_fileInput.value='';});
+    _fileInput.addEventListener('change',()=>{if(_fileInput.files.length)enqueueUpload([..._fileInput.files]);_fileInput.value='';});
     document.body.appendChild(_fileInput);}
   _fileInput.click();
 }
@@ -931,33 +998,113 @@ let _dragDepth=0;
 content.addEventListener('dragenter',e=>{e.preventDefault();_dragDepth++;content.classList.add('dragover');});
 content.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
 content.addEventListener('dragleave',e=>{e.preventDefault();if(--_dragDepth<=0){_dragDepth=0;content.classList.remove('dragover');}});
-content.addEventListener('drop',e=>{e.preventDefault();_dragDepth=0;content.classList.remove('dragover');const fs=[...(e.dataTransfer.files||[])];if(fs.length)handleUpload(fs);});
-document.addEventListener('paste',e=>{const fs=[...(e.clipboardData?.items||[])].filter(i=>i.kind==='file').map(i=>i.getAsFile()).filter(Boolean);if(fs.length&&!document.getElementById('overlay').classList.contains('open'))handleUpload(fs);});
+content.addEventListener('drop',e=>{e.preventDefault();_dragDepth=0;content.classList.remove('dragover');const fs=[...(e.dataTransfer.files||[])];if(fs.length)enqueueUpload(fs);});
+document.addEventListener('paste',e=>{const fs=[...(e.clipboardData?.items||[])].filter(i=>i.kind==='file').map(i=>i.getAsFile()).filter(Boolean);if(fs.length&&!document.getElementById('overlay').classList.contains('open'))enqueueUpload(fs);});
 
 function fileToB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=()=>rej(new Error('Đọc file lỗi'));r.readAsDataURL(f);});}
-async function handleUpload(files){
-  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic">${I.upload}</div><div class="ht"><h3>Tải lên ${files.length} tập tin</h3><p>Vào: ${esc((S.curPath[S.curPath.length-1]||{}).name||'')}</p></div></div>
-    <div class="dlg-body"><div class="uplist" id="upList">${files.map((f,i)=>`<div class="up-item go" id="up_${i}"><div class="ui-ic">${I[fileKind(f.type)]||I.file}</div><div class="ui-info"><b>${esc(f.name)}</b><div style="font-size:10.5px;color:var(--muted);margin-top:1px">${fmtSize(f.size)}</div><div class="ui-bar"><i></i></div></div><span class="ui-st">chờ…</span></div>`).join('')}</div></div>
-    <div class="dlg-foot"><button class="btn ghost" id="upClose" onclick="closeDialog()" disabled>Đang tải…</button></div></div>`);
-  let ok=0,fail=0;const added=[];
-  for(let i=0;i<files.length;i++){
-    const f=files[i],el=document.getElementById('up_'+i);
-    try{
-      el.querySelector('.ui-st').textContent='đang đọc…';el.querySelector('.ui-bar i').style.width='25%';
-      const b64=await fileToB64(f);
-      el.querySelector('.ui-st').textContent='đang tải lên…';el.querySelector('.ui-bar i').style.width='60%';
-      const r=await apiPost({action:'upload',folderId:S.curId,filename:f.name,mime:f.type||'application/octet-stream',data:b64});
-      el.classList.remove('go');el.classList.add('done');el.querySelector('.ui-bar i').style.width='100%';el.querySelector('.ui-st').innerHTML=I.check;ok++;
-      if(r&&r.file){r.file.updated=new Date().toISOString();r.file.dl='https://drive.google.com/uc?export=download&id='+r.file.id;added.push(r.file);}
-    }catch(e){el.classList.remove('go');el.classList.add('err');el.querySelector('.ui-st').textContent='lỗi';fail++;}
-  }
-  const cl=document.getElementById('upClose');cl.disabled=false;cl.textContent='Xong';cl.classList.remove('ghost');cl.classList.add('primary');
-  toast(`Đã tải lên ${ok} tập tin${fail?`, ${fail} lỗi`:''}`,fail>0);
-  // thêm ngay vào lưới (lạc quan) — không chờ reload nặng
-  if(added.length){S.files=S.files.concat(added);renderContent();}
-  // cập nhật số liệu + cây nền
-  loadStats(S.curId,true);loadMarquee();
+
+/* ═══════ HÀNG ĐỢI UPLOAD CHẠY NỀN ═══════ */
+const UQ={jobs:[],busy:false,seq:0};
+function enqueueUpload(files){
+  // Đưa file vào hàng đợi, GẮN folder hiện tại tại thời điểm bấm (không đổi khi chuyển folder)
+  const folderId=S.curId, folderName=(S.curPath[S.curPath.length-1]||{}).name||'';
+  files.forEach(f=>{
+    UQ.jobs.push({id:'j'+(UQ.seq++),file:f,name:f.name,size:f.size,mime:f.type||'application/octet-stream',
+      folderId,folderName,status:'queue',pct:0});
+  });
+  renderTracker();showTracker();
+  runQueue();
+  toast(`Đã thêm ${files.length} tập tin vào hàng đợi`);
 }
+async function runQueue(){
+  if(UQ.busy)return;UQ.busy=true;
+  while(true){
+    const job=UQ.jobs.find(j=>j.status==='queue');
+    if(!job)break;
+    job.status='reading';job.pct=15;updateJobUI(job);
+    try{
+      const b64=await fileToB64(job.file);
+      job.status='uploading';job.pct=55;updateJobUI(job);
+      const r=await apiPost({action:'upload',folderId:job.folderId,filename:job.name,mime:job.mime,data:b64});
+      job.status='done';job.pct=100;updateJobUI(job);
+      if(r&&r.file){
+        r.file.updated=new Date().toISOString();
+        r.file.dl='https://drive.google.com/uc?export=download&id='+r.file.id;
+        // nếu đang xem đúng folder đích → thêm vào lưới ngay
+        if(S.curId===job.folderId){S.files=S.files.concat([r.file]);renderContent();loadStats(S.curId,true);}
+      }
+    }catch(e){job.status='err';job.pct=100;job.err=(e.message||e);updateJobUI(job);}
+    renderTrackerFoot();
+  }
+  UQ.busy=false;
+  loadMarquee();
+  finalizeTracker();
+}
+function jobStatusText(j){return {queue:'chờ…',reading:'đang đọc…',uploading:'đang tải lên…',done:'',err:'lỗi'}[j.status]||'';}
+function jobStatusIcon(j){return j.status==='done'?I.check:(j.status==='err'?I.info:'');}
+
+/* ----- Mini tracker render ----- */
+function showTracker(){document.getElementById('upTracker').classList.add('show');}
+function toggleTracker(){document.getElementById('upTracker').classList.toggle('collapsed');}
+function renderTracker(){
+  document.getElementById('utBody').innerHTML=UQ.jobs.map(jobRow).join('');
+  renderTrackerHead();renderTrackerFoot();
+}
+function jobRow(j){
+  const k=fileKind(j.mime);
+  return `<div class="ut-item ${j.status==='done'?'done':j.status==='err'?'err':'go'}" id="ut_${j.id}">
+    <div class="uti-ic">${I[k]||I.file}</div>
+    <div class="uti-info"><b>${esc(j.name)}</b>
+      <div class="uti-sub">${fmtSize(j.size)} · ${I.folder} ${esc(j.folderName)}</div>
+      <div class="uti-bar"><i style="width:${j.pct}%"></i></div>
+    </div>
+    <div class="uti-st">${jobStatusIcon(j)||`<span style="font-size:9.5px;color:var(--muted);font-weight:700">${jobStatusText(j)}</span>`}</div>
+  </div>`;
+}
+function updateJobUI(job){
+  const el=document.getElementById('ut_'+job.id);
+  if(el){
+    el.className='ut-item '+(job.status==='done'?'done':job.status==='err'?'err':'go');
+    el.querySelector('.uti-bar i').style.width=job.pct+'%';
+    el.querySelector('.uti-st').innerHTML=jobStatusIcon(job)||`<span style="font-size:9.5px;color:var(--muted);font-weight:700">${jobStatusText(job)}</span>`;
+  }
+  // đồng bộ dialog chi tiết nếu đang mở
+  const del=document.getElementById('upd_'+job.id);
+  if(del){
+    del.className='up-item '+(job.status==='done'?'done':job.status==='err'?'err':'go');
+    del.querySelector('.ui-bar i').style.width=job.pct+'%';
+    del.querySelector('.ui-st').innerHTML=jobStatusIcon(job)||jobStatusText(job);
+  }
+  renderTrackerHead();
+}
+function renderTrackerHead(){
+  const total=UQ.jobs.length, done=UQ.jobs.filter(j=>j.status==='done').length, err=UQ.jobs.filter(j=>j.status==='err').length;
+  const running=UQ.jobs.some(j=>j.status==='reading'||j.status==='uploading'||j.status==='queue');
+  document.getElementById('utTitle').textContent=running?'Đang tải lên…':'Tải lên hoàn tất';
+  document.getElementById('utSub').textContent=`${done}/${total} hoàn tất${err?` · ${err} lỗi`:''}`;
+  document.getElementById('utIc').classList.toggle('spinning',running);
+}
+function renderTrackerFoot(){
+  const done=UQ.jobs.filter(j=>j.status==='done'||j.status==='err').length;
+  document.getElementById('utFoot').textContent=`${done}/${UQ.jobs.length} xong`;
+  document.getElementById('utClear').style.display=done>0?'block':'none';
+}
+function finalizeTracker(){
+  renderTrackerHead();renderTrackerFoot();
+  const total=UQ.jobs.length,ok=UQ.jobs.filter(j=>j.status==='done').length,err=UQ.jobs.filter(j=>j.status==='err').length;
+  toast(`Đã tải lên ${ok} tập tin${err?`, ${err} lỗi`:''}`,err>0);
+  // tự ẩn tracker sau 1 lúc nếu không còn job chạy & user không mở
+  setTimeout(()=>{
+    const running=UQ.jobs.some(j=>j.status==='reading'||j.status==='uploading'||j.status==='queue');
+    if(!running){const t=document.getElementById('upTracker');if(t&&!t.matches(':hover'))t.classList.remove('show');}
+  },6000);
+}
+function clearFinishedJobs(){
+  UQ.jobs=UQ.jobs.filter(j=>j.status!=='done'&&j.status!=='err');
+  if(!UQ.jobs.length){document.getElementById('upTracker').classList.remove('show');}
+  else renderTracker();
+}
+
 
 /* ---------- RELOAD HELPERS ---------- */
 async function reloadKeepTree(silent){
@@ -965,14 +1112,14 @@ async function reloadKeepTree(silent){
   loadMarquee();
 }
 async function refreshTreeAndFolder(){
-  try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';}}catch(e){}
+  for(const k in _childCache)delete _childCache[k];try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' nhóm';}}catch(e){}
   // nếu folder hiện tại bị xoá/di chuyển, fallback về root
   await openFolder(S.curId||S.tree.id);
   loadMarquee();
 }
 async function refreshAll(){
   const b=document.getElementById('refreshBtn');b.classList.add('spin');
-  try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';await openFolder(S.curId||S.tree.id);}toast('Đã làm mới');}
+  for(const k in _childCache)delete _childCache[k];try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' nhóm';await openFolder(S.curId||S.tree.id);}toast('Đã làm mới');}
   catch(e){toast('Lỗi làm mới: '+(e.message||e),true);}
   loadMarquee();b.classList.remove('spin');
 }
@@ -1023,6 +1170,11 @@ function toast(msg,err){const t=document.getElementById('toast');t.className='to
 I.close='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('viewerOverlay').classList.contains('open'))closeViewer();else if(document.getElementById('overlay').classList.contains('open'))closeDialog();else if(document.getElementById('logPanel').classList.contains('open'))closeLogPanel();else closeCtx();}});
 
+window.addEventListener('beforeunload',e=>{
+  if(UQ.jobs.some(j=>j.status==='reading'||j.status==='uploading'||j.status==='queue')){
+    e.preventDefault();e.returnValue='';
+  }
+});
 window.addEventListener('load',init);
 </script>
 </body>
