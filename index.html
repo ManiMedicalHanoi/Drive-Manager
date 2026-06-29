@@ -450,7 +450,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 <div class="overlay" id="overlay"><div id="dialogMount"></div></div>
 
 <!-- VIEWER -->
-<div class="overlay" id="viewerOverlay"><div class="dialog viewer-dialog"><div class="dlg-head"><div class="dlg-ic" id="vwIc"></div><div class="ht"><h3 id="vwName"></h3><p id="vwSub"></p></div><a class="tool" id="vwOpen" target="_blank" style="margin-right:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg><span>Mở Drive</span></a><button class="dlg-close" onclick="closeViewer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="viewer-body" id="viewerBody"></div></div></div>
+<div class="overlay" id="viewerOverlay"><div class="dialog viewer-dialog"><div class="dlg-head"><div class="dlg-ic" id="vwIc"></div><div class="ht"><h3 id="vwName"></h3><p id="vwSub"></p></div><a class="tool" id="vwOpen" target="_blank" style="margin-right:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg><span>Mở Drive</span></a><a class="tool primary" id="vwDl" style="margin-right:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span>Tải xuống</span></a><button class="dlg-close" onclick="closeViewer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="viewer-body" id="viewerBody"></div></div></div>
 
 <!-- CONTEXT MENU -->
 <div class="ctxmenu" id="ctxMenu"></div>
@@ -520,8 +520,17 @@ function apiGet(params){
   });
 }
 async function apiPost(body){
-  const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)});
-  const j=await r.json();
+  // Content-Type text/plain → tránh CORS preflight (OPTIONS) mà GAS không trả.
+  // GAS doPost trả JSON; redirect:'follow' để theo 302 sang googleusercontent.
+  const r=await fetch(GAS_URL,{
+    method:'POST',
+    redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(body)
+  });
+  const txt=await r.text();
+  let j;
+  try{j=JSON.parse(txt);}catch(e){throw new Error('Phản hồi không hợp lệ từ server');}
   if(!j||!j.ok)throw new Error(j&&j.error||'Lỗi không xác định');
   return j;
 }
@@ -611,19 +620,25 @@ function renderCrumbs(){
 }
 
 /* ---------- STATS ---------- */
-async function loadStats(id){
-  ['stFolders','stFiles','stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.add('loading'));
+async function loadStats(id,fresh){
+  // Hiện ngay số trực tiếp trong folder (không chờ server)
   document.getElementById('stFolders').textContent=S.folders.length;
   document.getElementById('stFolders').parentElement.parentElement.classList.remove('loading');
+  document.getElementById('stFiles').textContent=S.files.length;
+  document.getElementById('stFiles').parentElement.parentElement.classList.remove('loading');
+  // Dung lượng + ảnh: tính tổng cả nhánh (đệ quy) ở server
+  ['stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.add('loading'));
   try{
-    const r=await apiGet({action:'stats',id:id});
+    const p={action:'stats',id:id};if(fresh)p.fresh=1;
+    const r=await apiGet(p);
     if(r&&r.ok){
-      document.getElementById('stFiles').textContent=r.totalFiles.toLocaleString('vi-VN');
+      // Nếu nhánh có folder con, hiện tổng file cả nhánh; nếu không, giữ số trực tiếp
+      if(r.totalFolders>0)document.getElementById('stFiles').textContent=r.totalFiles.toLocaleString('vi-VN');
       document.getElementById('stSize').textContent=fmtSize(r.totalBytes);
       document.getElementById('stImages').textContent=((r.byType&&r.byType.image)||0).toLocaleString('vi-VN');
     }
   }catch(e){}
-  ['stFiles','stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.remove('loading'));
+  ['stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.remove('loading'));
 }
 
 /* ---------- CONTENT RENDER ---------- */
@@ -658,7 +673,7 @@ function renderGrid(fo,fi){
   if(fi.length){h+=`<div class="sec-label">Tập tin <span class="cnt">${fi.length}</span></div><div class="grid">`;
     fi.forEach(f=>{const k=fileKind(f.mime);const isImg=k==='image';
       h+=`<div class="card file" onclick="openViewerById('${f.id}')" oncontextmenu="ctx(event,'file','${f.id}','${escAttr(f.name)}')">
-        <div class="thumb">${isImg?`<img src="https://lh3.googleusercontent.com/d/${f.id}=w400" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=&quot;big&quot; style=&quot;color:var(--success)&quot;>'+DM_ICON('image')+'</span>'">`:`<span class="big" style="color:${kindColor(k)}">${I[k]||I.other}</span>`}<span class="ftype ft-${k}">${k}</span></div>
+        <div class="thumb">${isImg?`<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w400" loading="lazy" referrerpolicy="no-referrer" onerror="thumbFail(this,'${f.id}')">`:`<span class="big" style="color:${kindColor(k)}">${I[k]||I.other}</span>`}<span class="ftype ft-${k}">${k}</span></div>
         <div class="meta"><div class="nm">${esc(f.name)}</div><div class="sub">${fmtSize(f.size)} · ${fmtDateShort(f.updated)}</div></div>
         <div class="rowact">${iactBtns('file',f.id,f.name)}</div></div>`;});
     h+='</div>';}
@@ -672,7 +687,7 @@ function renderList(fo,fi){
     <div class="lact">${iactBtns('folder',f.id,f.name)}</div></div>`;});
   fi.forEach(f=>{const k=fileKind(f.mime);const isImg=k==='image';
     h+=`<div class="lrow file" onclick="openViewerById('${f.id}')" oncontextmenu="ctx(event,'file','${f.id}','${escAttr(f.name)}')">
-      <div class="lname"><span class="li" style="color:${kindColor(k)}">${isImg?`<img src="https://lh3.googleusercontent.com/d/${f.id}=w80" loading="lazy" onerror="this.style.display='none'">`:(I[k]||I.other)}</span><b>${esc(f.name)}</b></div>
+      <div class="lname"><span class="li" style="color:${kindColor(k)}">${isImg?`<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:(I[k]||I.other)}</span><b>${esc(f.name)}</b></div>
       <span class="lcell c-type">${KIND_LABEL[k]}</span><span class="lcell c-owner">${fmtTime(f.updated)}</span><span class="lcell c-date">${fmtSize(f.size)}</span>
       <div class="lact">${iactBtns('file',f.id,f.name)}</div></div>`;});
   h+='</div>';
@@ -680,13 +695,20 @@ function renderList(fo,fi){
 }
 function kindColor(k){return {image:'#16a34a',video:'#7c3aed',pdf:'#c0392b',slide:'#e07b39',sheet:'#0f8a4f',doc:'#1d4ed8',other:'#64748b'}[k]||'#64748b';}
 function DM_ICON(k){return I[k]||I.other;}
+function thumbFail(img,id){
+  if(!img.dataset.try){img.dataset.try='1';img.src='https://lh3.googleusercontent.com/d/'+id+'=w400';return;}
+  img.onerror=null;
+  img.parentElement.innerHTML='<span class="big" style="color:var(--success)">'+I.image+'</span><span class="ftype ft-image">image</span>';
+}
 function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 function iactBtns(type,id,name){
   const n=escAttr(name);
-  return `<button class="iact" title="Đổi tên" onclick="event.stopPropagation();openRename('${type}','${id}','${n}')">${I.rename}</button>
+  const dl=type==='file'?`<button class="iact" title="Tải xuống" onclick="event.stopPropagation();dlFile('${id}')">${I.dl}</button>`:'';
+  return `${dl}<button class="iact" title="Đổi tên" onclick="event.stopPropagation();openRename('${type}','${id}','${n}')">${I.rename}</button>
     <button class="iact" title="Di chuyển" onclick="event.stopPropagation();openMove('${type}','${id}','${n}')">${I.move}</button>
     <button class="iact del" title="Xoá" onclick="event.stopPropagation();openTrash('${type}','${id}','${n}')">${I.trash}</button>`;
 }
+function dlFile(id){window.open('https://drive.google.com/uc?export=download&id='+id,'_blank');}
 
 /* ---------- CONTEXT MENU ---------- */
 function ctx(e,type,id,name){
@@ -694,7 +716,8 @@ function ctx(e,type,id,name){
   const m=document.getElementById('ctxMenu');
   const isFile=type==='file';
   m.innerHTML=`
-    ${isFile?`<div class="ctx-item" onclick="ctxFind('${id}','view')">${I.eye} Xem trước</div>`:`<div class="ctx-item" onclick="openFolder('${id}');closeCtx()">${I.folder} Mở thư mục</div>`}
+    ${isFile?`<div class="ctx-item" onclick="ctxFind('${id}','view')">${I.eye} Xem trước</div>
+    <div class="ctx-item" onclick="dlFile('${id}');closeCtx()">${I.dl} Tải xuống</div>`:`<div class="ctx-item" onclick="openFolder('${id}');closeCtx()">${I.folder} Mở thư mục</div>`}
     <div class="ctx-item" onclick="openRename('${type}','${id}','${escAttr(name)}');closeCtx()">${I.rename} Đổi tên</div>
     <div class="ctx-item" onclick="openMove('${type}','${id}','${escAttr(name)}');closeCtx()">${I.move} Di chuyển</div>
     <div class="ctx-sep"></div>
@@ -719,8 +742,9 @@ function openViewer(f){
   document.getElementById('vwIc').style.background=kindColor(k);
   document.getElementById('vwIc').innerHTML=I[k]||I.other;
   document.getElementById('vwOpen').href=f.url;
+  document.getElementById('vwDl').href='https://drive.google.com/uc?export=download&id='+f.id;
   const body=document.getElementById('viewerBody');
-  if(k==='image'){body.innerHTML=`<img src="https://lh3.googleusercontent.com/d/${f.id}=w1600" onerror="this.src='https://drive.google.com/thumbnail?id=${f.id}&sz=w1600'">`;}
+  if(k==='image'){body.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w1600" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://lh3.googleusercontent.com/d/${f.id}=w1600'">`;}
   else if(k==='video'){body.innerHTML=`<iframe src="https://drive.google.com/file/d/${f.id}/preview" allow="autoplay" allowfullscreen></iframe>`;}
   else if(k==='slide'){body.innerHTML=`<iframe src="https://docs.google.com/presentation/d/${f.id}/embed?start=false&rm=minimal" allowfullscreen></iframe>`;}
   else if(k==='sheet'){body.innerHTML=`<iframe src="https://docs.google.com/spreadsheets/d/${f.id}/preview"></iframe>`;}
@@ -881,26 +905,31 @@ document.addEventListener('paste',e=>{const fs=[...(e.clipboardData?.items||[])]
 function fileToB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=()=>rej(new Error('Đọc file lỗi'));r.readAsDataURL(f);});}
 async function handleUpload(files){
   showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic">${I.upload}</div><div class="ht"><h3>Tải lên ${files.length} tập tin</h3><p>Vào: ${esc((S.curPath[S.curPath.length-1]||{}).name||'')}</p></div></div>
-    <div class="dlg-body"><div class="uplist" id="upList">${files.map((f,i)=>`<div class="up-item go" id="up_${i}"><div class="ui-ic">${I[fileKind(f.type)]||I.file}</div><div class="ui-info"><b>${esc(f.name)}</b><div class="ui-bar"><i></i></div></div><span class="ui-st">chờ…</span></div>`).join('')}</div></div>
+    <div class="dlg-body"><div class="uplist" id="upList">${files.map((f,i)=>`<div class="up-item go" id="up_${i}"><div class="ui-ic">${I[fileKind(f.type)]||I.file}</div><div class="ui-info"><b>${esc(f.name)}</b><div style="font-size:10.5px;color:var(--muted);margin-top:1px">${fmtSize(f.size)}</div><div class="ui-bar"><i></i></div></div><span class="ui-st">chờ…</span></div>`).join('')}</div></div>
     <div class="dlg-foot"><button class="btn ghost" id="upClose" onclick="closeDialog()" disabled>Đang tải…</button></div></div>`);
-  let ok=0,fail=0;
+  let ok=0,fail=0;const added=[];
   for(let i=0;i<files.length;i++){
     const f=files[i],el=document.getElementById('up_'+i);
     try{
-      el.querySelector('.ui-st').textContent='đang tải…';el.querySelector('.ui-bar i').style.width='40%';
-      const b64=await fileToB64(f);el.querySelector('.ui-bar i').style.width='70%';
-      await apiPost({action:'upload',folderId:S.curId,filename:f.name,mime:f.type||'application/octet-stream',data:b64});
+      el.querySelector('.ui-st').textContent='đang đọc…';el.querySelector('.ui-bar i').style.width='25%';
+      const b64=await fileToB64(f);
+      el.querySelector('.ui-st').textContent='đang tải lên…';el.querySelector('.ui-bar i').style.width='60%';
+      const r=await apiPost({action:'upload',folderId:S.curId,filename:f.name,mime:f.type||'application/octet-stream',data:b64});
       el.classList.remove('go');el.classList.add('done');el.querySelector('.ui-bar i').style.width='100%';el.querySelector('.ui-st').innerHTML=I.check;ok++;
+      if(r&&r.file){r.file.updated=new Date().toISOString();r.file.dl='https://drive.google.com/uc?export=download&id='+r.file.id;added.push(r.file);}
     }catch(e){el.classList.remove('go');el.classList.add('err');el.querySelector('.ui-st').textContent='lỗi';fail++;}
   }
   const cl=document.getElementById('upClose');cl.disabled=false;cl.textContent='Xong';cl.classList.remove('ghost');cl.classList.add('primary');
   toast(`Đã tải lên ${ok} tập tin${fail?`, ${fail} lỗi`:''}`,fail>0);
-  await reloadKeepTree(true);
+  // thêm ngay vào lưới (lạc quan) — không chờ reload nặng
+  if(added.length){S.files=S.files.concat(added);renderContent();}
+  // cập nhật số liệu + cây nền
+  loadStats(S.curId,true);loadMarquee();
 }
 
 /* ---------- RELOAD HELPERS ---------- */
 async function reloadKeepTree(silent){
-  try{const r=await apiGet({action:'list',id:S.curId});if(r&&r.ok){S.curPath=r.path||[];S.folders=r.folders||[];S.files=r.files||[];renderCrumbs();renderContent();loadStats(S.curId);}}catch(e){}
+  try{const r=await apiGet({action:'list',id:S.curId});if(r&&r.ok){S.curPath=r.path||[];S.folders=r.folders||[];S.files=r.files||[];renderCrumbs();renderContent();loadStats(S.curId,true);}}catch(e){}
   loadMarquee();
 }
 async function refreshTreeAndFolder(){
