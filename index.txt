@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MMH Drive Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#3A5CAA;--navy:#0E2F5F;--yellow:#FFE100;
+  --lb1:#C2D4F1;--lb2:#CADFEE;--lb3:#CFE2F3;--pale:#F0F7FF;
+  --bg:#eef3fb;--surface:#fff;--ink:#142943;--muted:#6c80a0;--line:#e3eaf6;
+  --success:#16a34a;--danger:#e05858;--warning:#f59e0b;--orange:#e07b39;--purple:#7c3aed;
+  --shadow-sm:0 2px 10px rgba(20,48,80,.06);--shadow-md:0 8px 30px rgba(20,48,80,.10);
+  --shadow-lg:0 20px 60px rgba(20,48,80,.18);--shadow-xl:0 30px 90px rgba(14,47,95,.28);
+  --ease:cubic-bezier(.4,0,.2,1);--ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --r:14px;--r-lg:20px;--r-sm:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Be Vietnam Pro',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#c2cfe3;border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+
+/* ========== APP SHELL ========== */
+#app{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+/* ---- TOP BAR ---- */
+.topbar{height:62px;flex-shrink:0;background:linear-gradient(100deg,var(--navy),var(--blue));color:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;box-shadow:0 4px 20px rgba(14,47,95,.25);z-index:40;position:relative}
+.tb-brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.tb-logo{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.13);display:grid;place-items:center;border:1px solid rgba(255,255,255,.2)}
+.tb-logo svg{width:21px;height:21px;color:var(--yellow)}
+.tb-brand b{font-size:16px;font-weight:800;letter-spacing:-.3px;line-height:1}
+.tb-brand small{font-size:10.5px;opacity:.7;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.tb-search{flex:1;max-width:440px;position:relative}
+.tb-search input{width:100%;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#fff;padding:0 16px 0 42px;font-size:14px;font-family:inherit;outline:none;transition:.2s}
+.tb-search input::placeholder{color:rgba(255,255,255,.6)}
+.tb-search input:focus{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
+.tb-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:rgba(255,255,255,.7)}
+.tb-spacer{flex:1}
+.tb-act{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.tb-btn{height:40px;padding:0 15px;border-radius:11px;background:rgba(255,255,255,.13);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;transition:.2s var(--ease);border:1px solid rgba(255,255,255,.15)}
+.tb-btn:hover{background:rgba(255,255,255,.24);transform:translateY(-1px)}
+.tb-btn svg{width:16px;height:16px}
+.tb-btn.refresh.spin svg{animation:spin .8s linear infinite}
+.tb-user{display:flex;align-items:center;gap:9px;padding-left:6px}
+.tb-ava{width:36px;height:36px;border-radius:50%;background:var(--yellow);color:var(--navy);display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0}
+.tb-user .u-info{line-height:1.15}.tb-user .u-info b{font-size:13px;font-weight:700;display:block}.tb-user .u-info small{font-size:10.5px;opacity:.7}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- LOG BANNER (chạy chậm) ---- */
+.logbanner{height:38px;flex-shrink:0;background:linear-gradient(90deg,#fffdf0,#fff);border-bottom:1px solid var(--line);display:flex;align-items:center;overflow:hidden;position:relative;z-index:30}
+.lb-tag{flex-shrink:0;height:100%;display:flex;align-items:center;gap:7px;padding:0 15px;background:linear-gradient(90deg,var(--yellow),#ffd400);color:var(--navy);font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;position:relative;z-index:2;box-shadow:4px 0 12px rgba(0,0,0,.06)}
+.lb-tag svg{width:14px;height:14px}
+.lb-tag .pulse{width:7px;height:7px;border-radius:50%;background:var(--navy);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.lb-track{flex:1;overflow:hidden;position:relative;height:100%}
+.lb-move{position:absolute;white-space:nowrap;display:flex;align-items:center;height:100%;will-change:transform;animation:marquee 48s linear infinite}
+.lb-move:hover{animation-play-state:paused}
+.lb-item{display:inline-flex;align-items:center;gap:8px;padding:0 26px;font-size:13px;color:var(--ink);position:relative}
+.lb-item::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--lb1)}
+.lb-item .who{font-weight:800;color:var(--blue)}
+.lb-item .act{font-weight:600;color:var(--orange)}
+.lb-item .obj{font-weight:700;color:var(--navy)}
+.lb-item .at{color:var(--muted)}
+.lb-item .tm{color:var(--muted);font-size:11.5px;font-style:italic}
+.lb-item svg{width:14px;height:14px;color:var(--blue);flex-shrink:0}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ---- BODY: SIDEBAR + MAIN ---- */
+.body{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* SIDEBAR (cây folder) */
+.sidebar{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:15px 18px 11px;display:flex;align-items:center;justify-content:space-between}
+.sb-head .t{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sb-head .mini{font-size:11px;color:var(--blue);font-weight:700;display:flex;align-items:center;gap:4px}
+.sb-tree{flex:1;overflow-y:auto;padding:0 10px 18px}
+.tnode{user-select:none}
+.trow{display:flex;align-items:center;gap:5px;padding:7px 8px;border-radius:9px;cursor:pointer;transition:.13s var(--ease);position:relative}
+.trow:hover{background:var(--pale)}
+.trow.active{background:linear-gradient(90deg,var(--blue),#4f6fc0);color:#fff;box-shadow:var(--shadow-sm)}
+.trow.active .tn-ic svg{color:var(--yellow)}
+.trow.active .tn-count{background:rgba(255,255,255,.25);color:#fff}
+.tn-tw{width:18px;height:18px;flex-shrink:0;display:grid;place-items:center;border-radius:5px;transition:.15s}
+.tn-tw svg{width:13px;height:13px;color:var(--muted);transition:transform .2s var(--ease)}
+.trow.active .tn-tw svg{color:rgba(255,255,255,.8)}
+.tnode.open>.trow>.tn-tw svg{transform:rotate(90deg)}
+.tn-tw.leaf{visibility:hidden}
+.tn-ic{flex-shrink:0;display:grid;place-items:center}
+.tn-ic svg{width:17px;height:17px;color:var(--blue)}
+.tn-name{flex:1;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tn-count{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--gray);background:#eef2f9;border-radius:20px;padding:1px 7px;flex-shrink:0}
+.tchildren{margin-left:14px;border-left:1px dashed var(--lb1);padding-left:5px;display:none}
+.tnode.open>.tchildren{display:block;animation:slideDown .2s var(--ease)}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.lbadge{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--lb3);color:var(--navy);margin-left:2px;flex-shrink:0;letter-spacing:.3px}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;background:var(--bg)}
+
+/* breadcrumb + toolbar */
+.mainbar{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.crumbs{flex:1;display:flex;align-items:center;gap:3px;flex-wrap:wrap;min-width:0;font-size:13.5px}
+.crumb{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9px;font-weight:600;color:var(--muted);transition:.15s;white-space:nowrap}
+.crumb:hover{background:var(--pale);color:var(--blue)}
+.crumb.cur{color:var(--navy);font-weight:800;background:var(--pale)}
+.crumb svg{width:14px;height:14px}
+.crumb-sep{color:var(--lb1);font-size:13px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tool{height:38px;padding:0 14px;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;transition:.18s var(--ease);border:1.5px solid var(--line);background:#fff;color:var(--navy)}
+.tool:hover{border-color:var(--blue);color:var(--blue);background:var(--pale);transform:translateY(-1px)}
+.tool svg{width:16px;height:16px}
+.tool.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tool.primary:hover{background:var(--navy);color:#fff}
+.tool.ghost{border-color:transparent;background:transparent}
+.viewtoggle{display:flex;background:#eef2f9;border-radius:10px;padding:3px}
+.viewtoggle button{width:34px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--muted);transition:.15s}
+.viewtoggle button.active{background:#fff;color:var(--blue);box-shadow:var(--shadow-sm)}
+.viewtoggle button svg{width:16px;height:16px}
+
+/* stats strip */
+.statstrip{flex-shrink:0;display:flex;gap:0;padding:0;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+.stat{flex:1;min-width:120px;padding:13px 20px;display:flex;align-items:center;gap:12px;border-right:1px solid var(--line);position:relative}
+.stat:last-child{border-right:none}
+.stat .s-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+.stat .s-ic svg{width:19px;height:19px}
+.stat.folders .s-ic{background:var(--blue)}.stat.files .s-ic{background:var(--orange)}
+.stat.size .s-ic{background:var(--purple)}.stat.images .s-ic{background:var(--success)}
+.stat .s-info{line-height:1.2;min-width:0}
+.stat .s-info b{font-size:19px;font-weight:800;color:var(--navy);display:block;letter-spacing:-.5px}
+.stat .s-info span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.stat.loading b{color:transparent;background:linear-gradient(90deg,#eef2f9,#dde6f3,#eef2f9);background-size:200% 100%;border-radius:5px;animation:shimmer 1.3s infinite;min-width:40px;min-height:20px}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* CONTENT GRID */
+.content{flex:1;overflow-y:auto;padding:22px;position:relative}
+.content.dragover::after{content:'';position:absolute;inset:14px;border:3px dashed var(--blue);border-radius:var(--r-lg);background:rgba(58,92,170,.06);pointer-events:none;z-index:5}
+.content.dragover .drop-hint{display:flex}
+.drop-hint{display:none;position:absolute;inset:0;z-index:6;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;color:var(--blue)}
+.drop-hint svg{width:64px;height:64px;margin-bottom:14px;animation:bob 1.4s ease-in-out infinite}
+.drop-hint b{font-size:20px;font-weight:800}.drop-hint span{font-size:14px;color:var(--muted);margin-top:4px}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+.sec-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:6px 2px 13px;display:flex;align-items:center;gap:8px}
+.sec-label .cnt{background:#eef2f9;color:var(--blue);border-radius:20px;padding:1px 9px;font-size:11px}
+.sec-label:not(:first-child){margin-top:26px}
+
+/* grid view */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:.2s var(--ease);position:relative;display:flex;flex-direction:column}
+.card:hover{border-color:var(--lb1);box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.card.folder:hover{border-color:var(--blue)}
+.card .thumb{height:108px;display:grid;place-items:center;position:relative;overflow:hidden;background:var(--pale)}
+.card.folder .thumb{background:linear-gradient(135deg,#eaf1fc,#dde9fb)}
+.card .thumb .big{width:48px;height:48px}
+.card.folder .thumb .big{color:var(--blue)}
+.card .thumb img{width:100%;height:100%;object-fit:cover}
+.card .thumb .ftype{position:absolute;bottom:7px;right:7px;font-size:9px;font-weight:800;text-transform:uppercase;color:#fff;padding:2px 6px;border-radius:5px;letter-spacing:.5px}
+.ft-pdf{background:#c0392b}.ft-image{background:var(--success)}.ft-video{background:var(--purple)}.ft-slide{background:var(--orange)}.ft-doc{background:#1d4ed8}.ft-sheet{background:#0f8a4f}.ft-other{background:#64748b}
+.card .meta{padding:10px 11px;flex:1;display:flex;flex-direction:column;gap:3px}
+.card .meta .nm{font-size:12.5px;font-weight:700;color:var(--navy);line-height:1.3;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta .sub{font-size:10.5px;color:var(--muted);margin-top:auto}
+.card .rowact{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transform:translateY(-4px);transition:.18s var(--ease)}
+.card:hover .rowact{opacity:1;transform:none}
+.iact{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.95);backdrop-filter:blur(4px);display:grid;place-items:center;color:var(--muted);box-shadow:var(--shadow-sm);transition:.15s}
+.iact:hover{color:var(--blue);transform:scale(1.1)}
+.iact.del:hover{color:var(--danger)}
+.iact svg{width:15px;height:15px}
+.card .lbadge2{position:absolute;top:8px;left:8px;font-size:8px;font-weight:800;padding:2px 6px;border-radius:5px;background:rgba(14,47,95,.8);color:#fff;letter-spacing:.4px}
+
+/* list view */
+.list{display:flex;flex-direction:column;gap:2px}
+.list .lhead{display:grid;grid-template-columns:1fr 110px 150px 120px 96px;gap:14px;padding:9px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1.5px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+.lrow{display:grid;grid-template-columns:1fr 110px 150px 120px 96px;gap:14px;padding:11px 16px;border-radius:10px;align-items:center;cursor:pointer;transition:.13s;border:1px solid transparent}
+.lrow:hover{background:var(--surface);border-color:var(--line);box-shadow:var(--shadow-sm)}
+.lrow .lname{display:flex;align-items:center;gap:11px;min-width:0}
+.lrow .lname .li{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+.lrow.folder .lname .li{background:linear-gradient(135deg,#eaf1fc,#dde9fb);color:var(--blue)}
+.lrow .lname .li svg{width:18px;height:18px}
+.lrow .lname .li img{width:100%;height:100%;object-fit:cover;border-radius:9px}
+.lrow .lname b{font-size:13.5px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .lcell{font-size:12.5px;color:var(--muted)}
+.lrow .lact{display:flex;gap:5px;justify-content:flex-end;opacity:0;transition:.15s}
+.lrow:hover .lact{opacity:1}
+
+/* empty */
+.empty{text-align:center;padding:70px 20px;color:var(--muted)}
+.empty svg{width:64px;height:64px;opacity:.25;margin-bottom:16px}
+.empty b{font-size:16px;color:var(--navy);display:block;margin-bottom:4px}
+.empty span{font-size:13.5px}
+.empty .tool{display:inline-flex;margin-top:18px}
+
+/* skeleton */
+.sk-card{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);overflow:hidden}
+.sk-card .skt{height:108px;background:linear-gradient(90deg,#eef2f9,#e3eaf6,#eef2f9);background-size:200% 100%;animation:shimmer 1.3s infinite}
+.sk-card .skm{padding:11px;display:flex;flex-direction:column;gap:7px}
+.sk-card .skl{height:11px;border-radius:5px;background:linear-gradient(90deg,#eef2f9,#e3eaf6,#eef2f9);background-size:200% 100%;animation:shimmer 1.3s infinite}
+
+/* ========== MODALS / OVERLAY ========== */
+.overlay{position:fixed;inset:0;z-index:200;display:none;background:rgba(8,22,45,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);align-items:center;justify-content:center;padding:24px}
+.overlay.open{display:flex;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.dialog{background:#fff;border-radius:var(--r-lg);width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;animation:dialogIn .35s var(--ease-spring)}
+@keyframes dialogIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.dialog.wide{max-width:680px}
+.dlg-head{padding:22px 24px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line)}
+.dlg-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex-shrink:0;color:#fff;background:var(--blue)}
+.dlg-ic.danger{background:var(--danger)}.dlg-ic.warn{background:var(--warning)}.dlg-ic.batch{background:var(--purple)}.dlg-ic.move{background:var(--orange)}
+.dlg-ic svg{width:23px;height:23px}
+.dlg-head .ht{flex:1;min-width:0}
+.dlg-head h3{font-size:18px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
+.dlg-head p{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlg-close{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--muted);flex-shrink:0;transition:.15s}
+.dlg-close:hover{background:var(--pale);color:var(--danger)}
+.dlg-close svg{width:20px;height:20px}
+.dlg-body{padding:22px 24px;max-height:64vh;overflow-y:auto}
+.dlg-foot{padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line);background:#fafcff}
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:7px}
+.field label .opt{font-weight:500;color:var(--muted);font-size:11.5px}
+.field input,.field select,.field textarea{width:100%;height:46px;border:1.5px solid var(--line);border-radius:12px;padding:0 15px;font-size:14.5px;font-family:inherit;color:var(--ink);outline:none;transition:.2s;background:#fbfcfe}
+.field textarea{height:auto;padding:12px 15px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px rgba(58,92,170,.1)}
+.btn{height:44px;padding:0 22px;border-radius:12px;font-size:14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;transition:.2s var(--ease)}
+.btn svg{width:16px;height:16px}
+.btn.primary{background:var(--blue);color:#fff}.btn.primary:hover{background:var(--navy);transform:translateY(-1px)}
+.btn.danger{background:var(--danger);color:#fff}.btn.danger:hover{background:#c0392b}
+.btn.ghost{background:var(--pale);color:var(--muted)}.btn.ghost:hover{background:#e4ecf7;color:var(--ink)}
+.btn:disabled{opacity:.55;pointer-events:none}
+
+/* batch rename preview */
+.seg{display:flex;gap:7px;background:#eef2f9;padding:4px;border-radius:12px;margin-bottom:18px;flex-wrap:wrap}
+.seg button{flex:1;min-width:90px;height:38px;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--muted);transition:.15s}
+.seg button.active{background:#fff;color:var(--blue);box-shadow:var(--shadow-sm)}
+.preview{background:var(--pale);border:1px solid var(--lb1);border-radius:12px;padding:6px;max-height:230px;overflow-y:auto;margin-top:6px}
+.pv-row{display:flex;align-items:center;gap:10px;padding:8px 11px;font-size:12.5px;border-radius:8px}
+.pv-row:hover{background:#fff}
+.pv-row .old{color:var(--muted);text-decoration:line-through;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-row .arrow{color:var(--blue);flex-shrink:0}
+.pv-row .new{color:var(--navy);font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+
+/* move tree picker */
+.movetree{border:1px solid var(--line);border-radius:12px;max-height:320px;overflow-y:auto;padding:8px}
+.mt-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;transition:.13s}
+.mt-row:hover{background:var(--pale)}
+.mt-row.sel{background:var(--blue);color:#fff}
+.mt-row.sel svg{color:var(--yellow)}
+.mt-row svg{width:16px;height:16px;color:var(--blue);flex-shrink:0}
+.mt-row .mt-tw{width:16px;cursor:pointer;color:var(--muted);transition:transform .2s}
+.mt-children{margin-left:18px;display:none}
+.mt-node.open>.mt-children{display:block}
+.mt-node.open>.mt-row>.mt-tw{transform:rotate(90deg)}
+
+/* uploading list */
+.uplist{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.up-item{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.up-item .ui-ic{width:34px;height:34px;border-radius:9px;background:var(--pale);display:grid;place-items:center;color:var(--blue);flex-shrink:0}
+.up-item .ui-ic svg{width:17px;height:17px}
+.up-item .ui-info{flex:1;min-width:0}
+.up-item .ui-info b{font-size:12.5px;font-weight:700;color:var(--navy);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up-item .ui-bar{height:5px;border-radius:5px;background:#eef2f9;margin-top:5px;overflow:hidden}
+.up-item .ui-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--yellow));border-radius:5px;width:0;transition:width .3s}
+.up-item .ui-st{font-size:11px;flex-shrink:0;font-weight:700}
+.up-item.done .ui-st{color:var(--success)}.up-item.err .ui-st{color:var(--danger)}.up-item.go .ui-st{color:var(--blue)}
+
+/* viewer modal */
+.viewer-dialog{max-width:1000px;width:100%}
+.viewer-body{padding:0;background:#0c1a2c;min-height:60vh;display:grid;place-items:center}
+.viewer-body img{max-width:100%;max-height:78vh;object-fit:contain}
+.viewer-body iframe{width:100%;height:78vh;border:0;background:#fff}
+
+/* ===== Full Log panel ===== */
+.logpanel{position:fixed;top:0;right:0;height:100dvh;width:480px;max-width:92vw;background:#fff;box-shadow:var(--shadow-xl);z-index:210;transform:translateX(100%);transition:transform .35s var(--ease);display:flex;flex-direction:column}
+.logpanel.open{transform:none}
+.lp-head{padding:20px 22px;background:linear-gradient(100deg,var(--navy),var(--blue));color:#fff;display:flex;align-items:center;gap:12px}
+.lp-head .t{flex:1}.lp-head h3{font-size:17px;font-weight:800}.lp-head p{font-size:12px;opacity:.75;margin-top:2px}
+.lp-head button{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;display:grid;place-items:center}
+.lp-head button svg{width:19px;height:19px}
+.lp-body{flex:1;overflow-y:auto;padding:14px}
+.logrow{display:flex;gap:12px;padding:13px;border-radius:12px;transition:.13s}
+.logrow:hover{background:var(--pale)}
+.logrow:not(:last-child){border-bottom:1px solid var(--line)}
+.lr-ava{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0;color:#fff}
+.lr-info{flex:1;min-width:0}
+.lr-info .l1{font-size:13.5px;line-height:1.45}
+.lr-info .l1 .who{font-weight:800;color:var(--blue)}.lr-info .l1 .act{color:var(--orange);font-weight:600}.lr-info .l1 .obj{font-weight:700;color:var(--navy)}
+.lr-info .l2{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lr-info .l2 .at{display:inline-flex;align-items:center;gap:4px}
+.lr-ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+.lr-ic svg{width:14px;height:14px}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--navy);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);z-index:300;display:flex;align-items:center;gap:11px;transition:transform .4s var(--ease-spring);max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--danger)}.toast.ok{background:var(--success)}
+.toast svg{width:19px;height:19px;flex-shrink:0}
+
+/* context menu */
+.ctxmenu{position:fixed;z-index:250;background:#fff;border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-lg);padding:6px;min-width:190px;display:none;animation:dialogIn .18s var(--ease)}
+.ctxmenu.open{display:block}
+.ctx-item{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;transition:.12s}
+.ctx-item:hover{background:var(--pale);color:var(--blue)}
+.ctx-item.danger:hover{background:#fef0f0;color:var(--danger)}
+.ctx-item svg{width:16px;height:16px;color:var(--muted)}
+.ctx-item:hover svg{color:inherit}
+.ctx-sep{height:1px;background:var(--line);margin:5px 8px}
+
+/* loading screen */
+.loadscreen{position:fixed;inset:0;z-index:400;background:linear-gradient(135deg,var(--navy),var(--blue));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .5s,visibility .5s}
+.loadscreen.hide{opacity:0;visibility:hidden}
+.loadscreen .llogo{width:74px;height:74px;border-radius:20px;background:rgba(255,255,255,.13);display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);animation:bob 2s ease-in-out infinite}
+.loadscreen .llogo svg{width:40px;height:40px;color:var(--yellow)}
+.loadscreen b{color:#fff;font-size:19px;font-weight:800;letter-spacing:-.3px}
+.loadscreen .lspin{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--yellow);border-radius:50%;animation:spin .8s linear infinite}
+.loadscreen small{color:rgba(255,255,255,.7);font-size:13px}
+
+/* ========== RESPONSIVE ========== */
+.menu-toggle{display:none}
+.sb-backdrop{display:none}
+@media(max-width:1024px){
+  .sidebar{position:fixed;top:0;left:0;height:100dvh;z-index:120;transform:translateX(-100%);transition:transform .3s var(--ease);width:290px;box-shadow:var(--shadow-xl)}
+  .sidebar.open{transform:none}
+  .sb-backdrop{position:fixed;inset:0;background:rgba(8,22,45,.4);z-index:110;display:none}
+  .sb-backdrop.open{display:block}
+  .menu-toggle{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.13);color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15)}
+  .menu-toggle svg{width:20px;height:20px}
+}
+@media(max-width:760px){
+  .tb-brand small{display:none}.tb-brand b{font-size:14px}
+  .tb-search{max-width:none}
+  .tb-btn span{display:none}.tb-btn{padding:0 11px}
+  .tb-user .u-info{display:none}
+  .statstrip .stat{min-width:108px;padding:11px 14px}.stat .s-info b{font-size:16px}
+  .mainbar{padding:11px 14px;gap:10px}
+  .toolbar .tool span{display:none}.tool{padding:0 11px}
+  .content{padding:14px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px}
+  .list .lhead,.lrow{grid-template-columns:1fr 80px;gap:10px}
+  .list .lhead .h-type,.list .lhead .h-owner,.list .lhead .h-date,.lrow .lcell.c-type,.lrow .lcell.c-owner,.lrow .lcell.c-date{display:none}
+  .logpanel{width:100%;max-width:100%}
+  .logbanner .lb-tag span{display:none}
+}
+@media(max-width:430px){
+  .tb-act .tb-btn.stat-btn{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .dialog{max-width:100%}
+}
+</style>
+</head>
+<body>
+<!-- LOADING SCREEN -->
+<div class="loadscreen" id="loadScreen">
+  <div class="llogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h5l2 3h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></div>
+  <b>MMH Drive Manager</b>
+  <div class="lspin"></div>
+  <small id="loadMsg">Đang quét cây thư mục từ Drive…</small>
+</div>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    <div class="tb-brand">
+      <div class="tb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h5l2 3h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></div>
+      <div><b>Drive Manager</b><br><small>MANI Medical Hanoi</small></div>
+    </div>
+    <div class="tb-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" placeholder="Tìm folder hoặc file trong thư mục hiện tại…" oninput="onSearch(this.value)">
+    </div>
+    <div class="tb-spacer"></div>
+    <div class="tb-act">
+      <button class="tb-btn stat-btn" onclick="openLogPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg><span>Lịch sử</span></button>
+      <button class="tb-btn refresh" id="refreshBtn" onclick="refreshAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5"/></svg><span>Làm mới</span></button>
+      <div class="tb-user">
+        <div class="tb-ava" id="userAva">?</div>
+        <div class="u-info"><b id="userName">Đang tải…</b><small id="userEmail"></small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG BANNER (chạy chậm) -->
+  <div class="logbanner">
+    <div class="lb-tag"><span class="pulse"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg><span>Hoạt động</span></div>
+    <div class="lb-track"><div class="lb-move" id="logMarquee"><div class="lb-item"><span class="tm">Đang tải nhật ký…</span></div></div></div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+    <div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar()"></div>
+    <!-- SIDEBAR TREE -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head">
+        <span class="t">Cây thư mục</span>
+        <span class="mini" id="treeMini"></span>
+      </div>
+      <div class="sb-tree" id="tree"></div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="mainbar">
+        <nav class="crumbs" id="crumbs"></nav>
+        <div class="toolbar">
+          <button class="tool" onclick="openCreateFolder()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h5l2 3h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M12 11v5M9.5 13.5h5"/></svg><span>Thư mục</span></button>
+          <button class="tool" onclick="openBatchRename()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Đổi tên loạt</span></button>
+          <button class="tool primary" onclick="pickFiles()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg><span>Tải lên</span></button>
+          <div class="viewtoggle">
+            <button id="vGrid" class="active" onclick="setView('grid')" title="Dạng lưới"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+            <button id="vList" onclick="setView('list')" title="Dạng danh sách"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="statstrip" id="statstrip">
+        <div class="stat folders"><div class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h5l2 3h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></div><div class="s-info"><b id="stFolders">—</b><span>Thư mục con</span></div></div>
+        <div class="stat files"><div class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div><div class="s-info"><b id="stFiles">—</b><span>Tập tin</span></div></div>
+        <div class="stat size"><div class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2M5.5 5.5 2 12l3.5 6.5M18.5 5.5 22 12l-3.5 6.5"/></svg></div><div class="s-info"><b id="stSize">—</b><span>Dung lượng</span></div></div>
+        <div class="stat images"><div class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div><div class="s-info"><b id="stImages">—</b><span>Hình ảnh</span></div></div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content" id="content">
+        <div class="drop-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg><b>Thả để tải lên</b><span>vào thư mục hiện tại</span></div>
+        <div id="contentInner"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- FULL LOG PANEL -->
+<div class="logpanel" id="logPanel">
+  <div class="lp-head">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px"><path d="M12 8v4l3 2M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>
+    <div class="t"><h3>Lịch sử hoạt động</h3><p>Ai đã thêm / sửa / xoá — theo thời gian</p></div>
+    <button onclick="closeLogPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="lp-body" id="logPanelBody"></div>
+</div>
+
+<!-- GENERIC DIALOG MOUNT -->
+<div class="overlay" id="overlay"><div id="dialogMount"></div></div>
+
+<!-- VIEWER -->
+<div class="overlay" id="viewerOverlay"><div class="dialog viewer-dialog"><div class="dlg-head"><div class="dlg-ic" id="vwIc"></div><div class="ht"><h3 id="vwName"></h3><p id="vwSub"></p></div><a class="tool" id="vwOpen" target="_blank" style="margin-right:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg><span>Mở Drive</span></a><button class="dlg-close" onclick="closeViewer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="viewer-body" id="viewerBody"></div></div></div>
+
+<!-- CONTEXT MENU -->
+<div class="ctxmenu" id="ctxMenu"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+<script>
+/* ════════════════════════════════════════════════════════════
+   MMH DRIVE MANAGER — Frontend logic
+   ════════════════════════════════════════════════════════════ */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVQ5jPJ895qbCvZRTNFATnMlL-K8QnyKvSc85j7Zh6UNCTDMBhyU0IezaQl3Nfp8iG/exec'; // ← PASTE URL /exec sau khi Deploy
+
+const S = {
+  tree:null, curId:null, curPath:[], folders:[], files:[],
+  view:'grid', search:'', user:{email:'',pic:''}, busy:false
+};
+
+/* ---------- ICONS ---------- */
+const I={
+  folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h5l2 3h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>',
+  chevR:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18l6-6-6-6"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  image:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>',
+  video:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>',
+  slide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M12 18v3M8 21h8"/></svg>',
+  sheet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+  other:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  rename:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  move:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+};
+const ACT_ICON={upload:I.upload,rename:I.rename,move:I.move,trash:I.trash,createFolder:I.folder,batchRename:I.rename};
+const ACT_COLOR={upload:'#3A5CAA',rename:'#e07b39',move:'#7c3aed',trash:'#e05858',createFolder:'#16a34a',batchRename:'#7c3aed'};
+
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmtSize(b){if(!b)return '0 B';const u=['B','KB','MB','GB','TB'];let i=Math.floor(Math.log(b)/Math.log(1024));return (b/Math.pow(1024,i)).toFixed(i?1:0)+' '+u[i];}
+function fmtTime(iso){try{const d=new Date(iso),now=new Date(),df=(now-d)/1000;
+  if(df<60)return 'vừa xong';if(df<3600)return Math.floor(df/60)+' phút trước';if(df<86400)return Math.floor(df/3600)+' giờ trước';
+  if(df<604800)return Math.floor(df/86400)+' ngày trước';
+  return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch(e){return ''}}
+function fmtDateShort(iso){try{return new Date(iso).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})}catch(e){return ''}}
+function initials(name){if(!name)return '?';const p=name.trim().split(/\s+/);return ((p[0]||'')[0]+((p.length>1?p[p.length-1][0]:''))).toUpperCase();}
+function avaColor(name){const cs=['#3A5CAA','#e07b39','#7c3aed','#16a34a','#0f8a4f','#c0392b','#1d4ed8','#0E2F5F'];let h=0;for(const c of (name||'x'))h=(h*31+c.charCodeAt(0))>>>0;return cs[h%cs.length];}
+function fileKind(mime){if(!mime)return 'other';if(mime.indexOf('image/')===0)return 'image';if(mime.indexOf('video/')===0)return 'video';if(mime==='application/pdf')return 'pdf';if(mime.indexOf('presentation')>=0)return 'slide';if(mime.indexOf('spreadsheet')>=0||mime.indexOf('excel')>=0)return 'sheet';if(mime.indexOf('document')>=0||mime.indexOf('word')>=0)return 'doc';return 'other';}
+const KIND_LABEL={image:'Hình ảnh',video:'Video',pdf:'PDF',slide:'Slide',sheet:'Bảng tính',doc:'Tài liệu',other:'Tập tin',folder:'Thư mục'};
+
+/* ---------- API (GET=jsonp, POST=fetch) ---------- */
+let _seq=0;
+function apiGet(params){
+  return new Promise((resolve,reject)=>{
+    const cb='__dm_cb_'+(_seq++),s=document.createElement('script');
+    const to=setTimeout(()=>{cleanup();reject(new Error('Hết thời gian — kiểm tra quyền Web App'))},45000);
+    function cleanup(){clearTimeout(to);delete window[cb];s.remove()}
+    window[cb]=d=>{cleanup();resolve(d)};
+    const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+    s.src=GAS_URL+'?'+qs+'&callback='+cb;
+    s.onerror=()=>{cleanup();reject(new Error('Không gọi được Web App'))};
+    document.body.appendChild(s);
+  });
+}
+async function apiPost(body){
+  const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!j||!j.ok)throw new Error(j&&j.error||'Lỗi không xác định');
+  return j;
+}
+
+/* ---------- INIT ---------- */
+async function init(){
+  if(!GAS_URL){
+    document.getElementById('loadMsg').textContent='⚠ Chưa cấu hình GAS_URL trong index.html';
+    toast('Chưa điền GAS_URL — mở index.html dán link Web App /exec',true);return;
+  }
+  try{
+    apiGet({action:'whoami'}).then(r=>{if(r&&r.ok)setUser(r)});
+    const r=await apiGet({action:'tree'});
+    if(!r||!r.ok)throw new Error(r&&r.error||'Không tải được cây thư mục');
+    S.tree=r.tree;
+    renderTree();
+    document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';
+    await openFolder(S.tree.id,true);
+    loadMarquee();
+    document.getElementById('loadScreen').classList.add('hide');
+  }catch(err){
+    document.getElementById('loadMsg').textContent='Lỗi: '+(err.message||err);
+    toast('Lỗi khởi động: '+(err.message||err),true);
+  }
+}
+function setUser(r){
+  S.user={email:r.email||'',pic:r.pic||'Khách'};
+  document.getElementById('userName').textContent=S.user.pic;
+  document.getElementById('userEmail').textContent=S.user.email;
+  document.getElementById('userAva').textContent=initials(S.user.pic);
+  document.getElementById('userAva').style.background='var(--yellow)';
+}
+function countNodes(n){let c=0;(function w(x){(x.folders||[]).forEach(f=>{c++;w(f)})})(n);return c;}
+
+/* ---------- TREE SIDEBAR ---------- */
+function renderTree(){
+  const root=S.tree;
+  document.getElementById('tree').innerHTML=
+    `<div class="tnode open" data-id="${root.id}">
+       <div class="trow" onclick="openFolder('${root.id}')"><span class="tn-tw"></span><span class="tn-ic">${I.folder}</span><span class="tn-name">${esc(root.name)}</span></div>
+       <div class="tchildren">${(root.folders||[]).map(f=>treeNode(f)).join('')}</div>
+     </div>`;
+}
+function treeNode(n){
+  const has=(n.folders||[]).length>0;
+  const layerBadge=n.layer===1?`<span class="lbadge">L1</span>`:'';
+  return `<div class="tnode" data-id="${n.id}">
+    <div class="trow" onclick="treeClick(event,'${n.id}',${has})">
+      <span class="tn-tw ${has?'':'leaf'}" onclick="treeToggle(event,this)">${has?I.chevR:''}</span>
+      <span class="tn-ic">${I.folder}</span>
+      <span class="tn-name">${esc(n.name)}</span>${layerBadge}
+      ${has?`<span class="tn-count">${n.folders.length}</span>`:''}
+    </div>
+    ${has?`<div class="tchildren">${n.folders.map(c=>treeNode(c)).join('')}</div>`:''}
+  </div>`;
+}
+function treeClick(e,id,has){e.stopPropagation();const node=e.currentTarget.closest('.tnode');if(has&&!node.classList.contains('open'))node.classList.add('open');openFolder(id);}
+function treeToggle(e,el){e.stopPropagation();el.closest('.tnode').classList.toggle('open');}
+function highlightTree(id){
+  document.querySelectorAll('.trow.active').forEach(r=>r.classList.remove('active'));
+  const node=document.querySelector(`.tnode[data-id="${id}"]`);
+  if(node){node.querySelector('.trow').classList.add('active');
+    let p=node.parentElement;while(p){if(p.classList&&p.classList.contains('tnode'))p.classList.add('open');p=p.parentElement;}
+    node.querySelector('.trow').scrollIntoView({block:'nearest'});}
+}
+
+/* ---------- OPEN FOLDER ---------- */
+async function openFolder(id,first){
+  S.curId=id;S.search='';document.getElementById('search').value='';
+  highlightTree(id);
+  if(window.innerWidth<=1024)closeSidebar();
+  if(!first)showContentSkeleton();
+  try{
+    const r=await apiGet({action:'list',id:id});
+    if(!r||!r.ok)throw new Error(r&&r.error||'Không tải được nội dung');
+    S.curPath=r.path||[];S.folders=r.folders||[];S.files=r.files||[];
+    renderCrumbs();renderContent();
+    loadStats(id);
+  }catch(err){toast('Lỗi: '+(err.message||err),true)}
+}
+function renderCrumbs(){
+  const html=S.curPath.map((c,i)=>{
+    const cur=i===S.curPath.length-1;
+    return `${i>0?'<span class="crumb-sep">'+I.chevR+'</span>':''}<a class="crumb ${cur?'cur':''}" onclick="openFolder('${c.id}')">${i===0?I.folder:''}<span>${esc(c.name)}</span></a>`;
+  }).join('');
+  document.getElementById('crumbs').innerHTML=html;
+}
+
+/* ---------- STATS ---------- */
+async function loadStats(id){
+  ['stFolders','stFiles','stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.add('loading'));
+  document.getElementById('stFolders').textContent=S.folders.length;
+  document.getElementById('stFolders').parentElement.parentElement.classList.remove('loading');
+  try{
+    const r=await apiGet({action:'stats',id:id});
+    if(r&&r.ok){
+      document.getElementById('stFiles').textContent=r.totalFiles.toLocaleString('vi-VN');
+      document.getElementById('stSize').textContent=fmtSize(r.totalBytes);
+      document.getElementById('stImages').textContent=((r.byType&&r.byType.image)||0).toLocaleString('vi-VN');
+    }
+  }catch(e){}
+  ['stFiles','stSize','stImages'].forEach(x=>document.getElementById(x).parentElement.parentElement.classList.remove('loading'));
+}
+
+/* ---------- CONTENT RENDER ---------- */
+function setView(v){S.view=v;document.getElementById('vGrid').classList.toggle('active',v==='grid');document.getElementById('vList').classList.toggle('active',v==='list');renderContent();}
+function showContentSkeleton(){
+  let h='<div class="grid">';for(let i=0;i<10;i++)h+='<div class="sk-card"><div class="skt"></div><div class="skm"><div class="skl" style="width:80%"></div><div class="skl" style="width:50%"></div></div></div>';h+='</div>';
+  document.getElementById('contentInner').innerHTML=h;
+}
+function curItems(){
+  const t=S.search.toLowerCase();
+  let fo=S.folders, fi=S.files;
+  if(t){fo=fo.filter(f=>f.name.toLowerCase().includes(t));fi=fi.filter(f=>f.name.toLowerCase().includes(t));}
+  return {fo,fi};
+}
+function renderContent(){
+  const {fo,fi}=curItems();
+  if(!fo.length&&!fi.length){
+    document.getElementById('contentInner').innerHTML=
+      `<div class="empty">${I.folder}<b>${S.search?'Không tìm thấy':'Thư mục trống'}</b><span>${S.search?'Thử từ khoá khác':'Kéo–thả file vào đây hoặc bấm Tải lên'}</span>${S.search?'':`<button class="tool primary" onclick="pickFiles()">${I.upload}<span>Tải lên</span></button>`}</div>`;
+    return;
+  }
+  S.view==='grid'?renderGrid(fo,fi):renderList(fo,fi);
+}
+function renderGrid(fo,fi){
+  let h='';
+  if(fo.length){h+=`<div class="sec-label">Thư mục con <span class="cnt">${fo.length}</span></div><div class="grid">`;
+    fo.forEach(f=>{h+=`<div class="card folder" onclick="openFolder('${f.id}')" oncontextmenu="ctx(event,'folder','${f.id}','${escAttr(f.name)}')">
+      <div class="thumb"><span class="big">${I.folder}</span></div>
+      <div class="meta"><div class="nm">${esc(f.name)}</div><div class="sub">Thư mục</div></div>
+      <div class="rowact">${iactBtns('folder',f.id,f.name)}</div></div>`;});
+    h+='</div>';}
+  if(fi.length){h+=`<div class="sec-label">Tập tin <span class="cnt">${fi.length}</span></div><div class="grid">`;
+    fi.forEach(f=>{const k=fileKind(f.mime);const isImg=k==='image';
+      h+=`<div class="card file" onclick="openViewerById('${f.id}')" oncontextmenu="ctx(event,'file','${f.id}','${escAttr(f.name)}')">
+        <div class="thumb">${isImg?`<img src="https://lh3.googleusercontent.com/d/${f.id}=w400" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=&quot;big&quot; style=&quot;color:var(--success)&quot;>'+DM_ICON('image')+'</span>'">`:`<span class="big" style="color:${kindColor(k)}">${I[k]||I.other}</span>`}<span class="ftype ft-${k}">${k}</span></div>
+        <div class="meta"><div class="nm">${esc(f.name)}</div><div class="sub">${fmtSize(f.size)} · ${fmtDateShort(f.updated)}</div></div>
+        <div class="rowact">${iactBtns('file',f.id,f.name)}</div></div>`;});
+    h+='</div>';}
+  document.getElementById('contentInner').innerHTML=h;
+}
+function renderList(fo,fi){
+  let h=`<div class="list"><div class="lhead"><span>Tên</span><span class="h-type">Loại</span><span class="h-owner">Cập nhật</span><span class="h-date">Dung lượng</span><span></span></div>`;
+  fo.forEach(f=>{h+=`<div class="lrow folder" onclick="openFolder('${f.id}')" oncontextmenu="ctx(event,'folder','${f.id}','${escAttr(f.name)}')">
+    <div class="lname"><span class="li">${I.folder}</span><b>${esc(f.name)}</b></div>
+    <span class="lcell c-type">Thư mục</span><span class="lcell c-owner">—</span><span class="lcell c-date">—</span>
+    <div class="lact">${iactBtns('folder',f.id,f.name)}</div></div>`;});
+  fi.forEach(f=>{const k=fileKind(f.mime);const isImg=k==='image';
+    h+=`<div class="lrow file" onclick="openViewerById('${f.id}')" oncontextmenu="ctx(event,'file','${f.id}','${escAttr(f.name)}')">
+      <div class="lname"><span class="li" style="color:${kindColor(k)}">${isImg?`<img src="https://lh3.googleusercontent.com/d/${f.id}=w80" loading="lazy" onerror="this.style.display='none'">`:(I[k]||I.other)}</span><b>${esc(f.name)}</b></div>
+      <span class="lcell c-type">${KIND_LABEL[k]}</span><span class="lcell c-owner">${fmtTime(f.updated)}</span><span class="lcell c-date">${fmtSize(f.size)}</span>
+      <div class="lact">${iactBtns('file',f.id,f.name)}</div></div>`;});
+  h+='</div>';
+  document.getElementById('contentInner').innerHTML=h;
+}
+function kindColor(k){return {image:'#16a34a',video:'#7c3aed',pdf:'#c0392b',slide:'#e07b39',sheet:'#0f8a4f',doc:'#1d4ed8',other:'#64748b'}[k]||'#64748b';}
+function DM_ICON(k){return I[k]||I.other;}
+function escAttr(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+function iactBtns(type,id,name){
+  const n=escAttr(name);
+  return `<button class="iact" title="Đổi tên" onclick="event.stopPropagation();openRename('${type}','${id}','${n}')">${I.rename}</button>
+    <button class="iact" title="Di chuyển" onclick="event.stopPropagation();openMove('${type}','${id}','${n}')">${I.move}</button>
+    <button class="iact del" title="Xoá" onclick="event.stopPropagation();openTrash('${type}','${id}','${n}')">${I.trash}</button>`;
+}
+
+/* ---------- CONTEXT MENU ---------- */
+function ctx(e,type,id,name){
+  e.preventDefault();e.stopPropagation();
+  const m=document.getElementById('ctxMenu');
+  const isFile=type==='file';
+  m.innerHTML=`
+    ${isFile?`<div class="ctx-item" onclick="ctxFind('${id}','view')">${I.eye} Xem trước</div>`:`<div class="ctx-item" onclick="openFolder('${id}');closeCtx()">${I.folder} Mở thư mục</div>`}
+    <div class="ctx-item" onclick="openRename('${type}','${id}','${escAttr(name)}');closeCtx()">${I.rename} Đổi tên</div>
+    <div class="ctx-item" onclick="openMove('${type}','${id}','${escAttr(name)}');closeCtx()">${I.move} Di chuyển</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="openTrash('${type}','${id}','${escAttr(name)}');closeCtx()">${I.trash} Xoá</div>`;
+  m.style.display='block';
+  const mw=210,mh=m.offsetHeight||220;
+  m.style.left=Math.min(e.clientX,innerWidth-mw)+'px';
+  m.style.top=Math.min(e.clientY,innerHeight-mh)+'px';
+  m.classList.add('open');
+}
+function closeCtx(){document.getElementById('ctxMenu').classList.remove('open');document.getElementById('ctxMenu').style.display='none';}
+function ctxFind(id,act){const f=S.files.find(x=>x.id===id);if(f&&act==='view')openViewer(f);closeCtx();}
+document.addEventListener('click',e=>{if(!e.target.closest('#ctxMenu'))closeCtx();});
+document.addEventListener('scroll',closeCtx,true);
+
+/* ---------- VIEWER ---------- */
+function openViewerById(id){const f=S.files.find(x=>x.id===id);if(f)openViewer(f);}
+function openViewer(f){
+  const k=fileKind(f.mime);
+  document.getElementById('vwName').textContent=f.name;
+  document.getElementById('vwSub').textContent=KIND_LABEL[k]+' · '+fmtSize(f.size);
+  document.getElementById('vwIc').style.background=kindColor(k);
+  document.getElementById('vwIc').innerHTML=I[k]||I.other;
+  document.getElementById('vwOpen').href=f.url;
+  const body=document.getElementById('viewerBody');
+  if(k==='image'){body.innerHTML=`<img src="https://lh3.googleusercontent.com/d/${f.id}=w1600" onerror="this.src='https://drive.google.com/thumbnail?id=${f.id}&sz=w1600'">`;}
+  else if(k==='video'){body.innerHTML=`<iframe src="https://drive.google.com/file/d/${f.id}/preview" allow="autoplay" allowfullscreen></iframe>`;}
+  else if(k==='slide'){body.innerHTML=`<iframe src="https://docs.google.com/presentation/d/${f.id}/embed?start=false&rm=minimal" allowfullscreen></iframe>`;}
+  else if(k==='sheet'){body.innerHTML=`<iframe src="https://docs.google.com/spreadsheets/d/${f.id}/preview"></iframe>`;}
+  else if(k==='doc'){body.innerHTML=`<iframe src="https://docs.google.com/document/d/${f.id}/preview"></iframe>`;}
+  else {body.innerHTML=`<iframe src="https://drive.google.com/file/d/${f.id}/preview" allowfullscreen></iframe>`;}
+  document.getElementById('viewerOverlay').classList.add('open');
+}
+function closeViewer(){document.getElementById('viewerOverlay').classList.remove('open');document.getElementById('viewerBody').innerHTML='';}
+
+/* ---------- DIALOG HELPERS ---------- */
+function showDialog(html){document.getElementById('dialogMount').innerHTML=html;document.getElementById('overlay').classList.add('open');}
+function closeDialog(){document.getElementById('overlay').classList.remove('open');document.getElementById('dialogMount').innerHTML='';}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeDialog();});
+document.getElementById('viewerOverlay').addEventListener('click',e=>{if(e.target.id==='viewerOverlay')closeViewer();});
+
+/* ---------- RENAME ---------- */
+function openRename(type,id,name){
+  const isFolder=type==='folder';
+  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic">${I.rename}</div><div class="ht"><h3>Đổi tên ${isFolder?'thư mục':'tập tin'}</h3><p>${esc(name)}</p></div><button class="dlg-close" onclick="closeDialog()">${I.close||'✕'}</button></div>
+    <div class="dlg-body"><div class="field"><label>Tên mới</label><input id="rnInput" value="${esc(name)}" onkeydown="if(event.key==='Enter')doRename('${type}','${id}')"></div></div>
+    <div class="dlg-foot"><button class="btn ghost" onclick="closeDialog()">Huỷ</button><button class="btn primary" id="rnBtn" onclick="doRename('${type}','${id}')">${I.check} Lưu</button></div></div>`);
+  setTimeout(()=>{const i=document.getElementById('rnInput');i.focus();const dot=i.value.lastIndexOf('.');i.setSelectionRange(0,dot>0&&!isFolder?dot:i.value.length);},80);
+}
+async function doRename(type,id){
+  const v=document.getElementById('rnInput').value.trim();if(!v)return;
+  const btn=document.getElementById('rnBtn');btn.disabled=true;btn.innerHTML=spin()+' Đang lưu…';
+  try{await apiPost({action:'rename',id,newName:v,isFolder:type==='folder'});closeDialog();toast('Đã đổi tên');await reloadKeepTree();}
+  catch(e){btn.disabled=false;btn.innerHTML=I.check+' Lưu';toast('Lỗi: '+(e.message||e),true);}
+}
+
+/* ---------- CREATE FOLDER ---------- */
+function openCreateFolder(){
+  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic" style="background:var(--success)">${I.folder}</div><div class="ht"><h3>Tạo thư mục mới</h3><p>Trong: ${esc((S.curPath[S.curPath.length-1]||{}).name||'')}</p></div><button class="dlg-close" onclick="closeDialog()">✕</button></div>
+    <div class="dlg-body"><div class="field"><label>Tên thư mục</label><input id="cfInput" placeholder="VD: FY68" onkeydown="if(event.key==='Enter')doCreateFolder()"></div></div>
+    <div class="dlg-foot"><button class="btn ghost" onclick="closeDialog()">Huỷ</button><button class="btn primary" id="cfBtn" onclick="doCreateFolder()">${I.check} Tạo</button></div></div>`);
+  setTimeout(()=>document.getElementById('cfInput').focus(),80);
+}
+async function doCreateFolder(){
+  const v=document.getElementById('cfInput').value.trim();if(!v)return;
+  const btn=document.getElementById('cfBtn');btn.disabled=true;btn.innerHTML=spin()+' Đang tạo…';
+  try{await apiPost({action:'createFolder',parentId:S.curId,name:v});closeDialog();toast('Đã tạo thư mục');await refreshTreeAndFolder();}
+  catch(e){btn.disabled=false;btn.innerHTML=I.check+' Tạo';toast('Lỗi: '+(e.message||e),true);}
+}
+
+/* ---------- TRASH ---------- */
+function openTrash(type,id,name){
+  const isFolder=type==='folder';
+  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic danger">${I.trash}</div><div class="ht"><h3>Xoá ${isFolder?'thư mục':'tập tin'}?</h3><p>${esc(name)}</p></div><button class="dlg-close" onclick="closeDialog()">✕</button></div>
+    <div class="dlg-body"><p style="font-size:14px;line-height:1.6;color:var(--muted)">${isFolder?'<b>Cả thư mục và toàn bộ nội dung bên trong</b> sẽ được chuyển vào Thùng rác của Drive.':'Tập tin sẽ được chuyển vào Thùng rác của Drive.'} Có thể khôi phục trong Drive nếu cần.</p></div>
+    <div class="dlg-foot"><button class="btn ghost" onclick="closeDialog()">Huỷ</button><button class="btn danger" id="trBtn" onclick="doTrash('${type}','${id}')">${I.trash} Xoá</button></div></div>`);
+}
+async function doTrash(type,id){
+  const btn=document.getElementById('trBtn');btn.disabled=true;btn.innerHTML=spin()+' Đang xoá…';
+  try{await apiPost({action:'trash',id,isFolder:type==='folder'});closeDialog();toast('Đã chuyển vào thùng rác');
+    if(type==='folder')await refreshTreeAndFolder();else await reloadKeepTree();}
+  catch(e){btn.disabled=false;btn.innerHTML=I.trash+' Xoá';toast('Lỗi: '+(e.message||e),true);}
+}
+
+/* ---------- MOVE ---------- */
+let _moveTarget=null;
+function openMove(type,id,name){
+  _moveTarget=null;
+  showDialog(`<div class="dialog wide"><div class="dlg-head"><div class="dlg-ic move">${I.move}</div><div class="ht"><h3>Di chuyển</h3><p>${esc(name)}</p></div><button class="dlg-close" onclick="closeDialog()">✕</button></div>
+    <div class="dlg-body"><label style="display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:9px">Chọn thư mục đích</label>
+    <div class="movetree" id="moveTree">${moveTreeNode(S.tree,id,true)}</div></div>
+    <div class="dlg-foot"><button class="btn ghost" onclick="closeDialog()">Huỷ</button><button class="btn primary" id="mvBtn" disabled onclick="doMove('${type}','${id}')">${I.move} Di chuyển vào đây</button></div></div>`);
+}
+function moveTreeNode(n,excludeId,isRoot){
+  if(n.id===excludeId)return ''; // không cho move vào chính nó
+  const has=(n.folders||[]).filter(f=>f.id!==excludeId).length>0;
+  return `<div class="mt-node ${isRoot?'open':''}" data-id="${n.id}">
+    <div class="mt-row" onclick="pickMove(this,'${n.id}')"><span class="mt-tw" onclick="event.stopPropagation();this.closest('.mt-node').classList.toggle('open')">${has?I.chevR:'&nbsp;'}</span>${I.folder}<span>${esc(n.name)}</span></div>
+    ${has?`<div class="mt-children">${n.folders.map(c=>moveTreeNode(c,excludeId)).join('')}</div>`:''}</div>`;
+}
+function pickMove(el,id){document.querySelectorAll('.mt-row.sel').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');_moveTarget=id;document.getElementById('mvBtn').disabled=false;}
+async function doMove(type,id){
+  if(!_moveTarget)return;
+  const btn=document.getElementById('mvBtn');btn.disabled=true;btn.innerHTML=spin()+' Đang chuyển…';
+  try{await apiPost({action:'move',id,toFolderId:_moveTarget,isFolder:type==='folder'});closeDialog();toast('Đã di chuyển');
+    if(type==='folder')await refreshTreeAndFolder();else await reloadKeepTree();}
+  catch(e){btn.disabled=false;btn.innerHTML=I.move+' Di chuyển vào đây';toast('Lỗi: '+(e.message||e),true);}
+}
+
+/* ---------- BATCH RENAME ---------- */
+let _batchMode='prefix';
+function openBatchRename(){
+  const files=S.files;
+  if(!files.length){toast('Thư mục này chưa có tập tin để đổi tên',true);return;}
+  _batchMode='prefix';
+  showDialog(`<div class="dialog wide"><div class="dlg-head"><div class="dlg-ic batch">${I.rename}</div><div class="ht"><h3>Đổi tên hàng loạt</h3><p>${files.length} tập tin trong "${esc((S.curPath[S.curPath.length-1]||{}).name||'')}"</p></div><button class="dlg-close" onclick="closeDialog()">✕</button></div>
+    <div class="dlg-body">
+      <div class="seg" id="batchSeg">
+        <button class="active" onclick="setBatchMode('prefix')">Thêm đầu</button>
+        <button onclick="setBatchMode('suffix')">Thêm cuối</button>
+        <button onclick="setBatchMode('replace')">Tìm & thay</button>
+        <button onclick="setBatchMode('sequence')">Đánh số</button>
+      </div>
+      <div id="batchFields"></div>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin:14px 2px 6px;text-transform:uppercase;letter-spacing:.5px">Xem trước</label>
+      <div class="preview" id="batchPreview"></div>
+    </div>
+    <div class="dlg-foot"><button class="btn ghost" onclick="closeDialog()">Huỷ</button><button class="btn primary" id="brBtn" onclick="doBatchRename()">${I.check} Áp dụng</button></div></div>`);
+  renderBatchFields();
+}
+function setBatchMode(m){_batchMode=m;document.querySelectorAll('#batchSeg button').forEach((b,i)=>b.classList.toggle('active',['prefix','suffix','replace','sequence'][i]===m));renderBatchFields();}
+function renderBatchFields(){
+  let h='';
+  if(_batchMode==='prefix')h=`<div class="field"><label>Tiền tố thêm vào đầu tên</label><input id="bf_text" placeholder="VD: MMH_" oninput="updateBatchPreview()"></div>`;
+  else if(_batchMode==='suffix')h=`<div class="field"><label>Hậu tố thêm vào cuối tên <span class="opt">(trước phần mở rộng)</span></label><input id="bf_text" placeholder="VD: _2025" oninput="updateBatchPreview()"></div>`;
+  else if(_batchMode==='replace')h=`<div class="field"><label>Tìm chuỗi</label><input id="bf_find" placeholder="chuỗi cần thay" oninput="updateBatchPreview()"></div><div class="field"><label>Thay bằng <span class="opt">(để trống = xoá)</span></label><input id="bf_to" placeholder="chuỗi mới" oninput="updateBatchPreview()"></div>`;
+  else if(_batchMode==='sequence')h=`<div class="field"><label>Mẫu tên <span class="opt">{name}=tên gốc, {n}=số thứ tự</span></label><input id="bf_text" value="{name}_{n}" oninput="updateBatchPreview()"></div><div class="field" style="display:flex;gap:12px"><div style="flex:1"><label>Bắt đầu từ</label><input id="bf_start" type="number" value="1" oninput="updateBatchPreview()"></div><div style="flex:1"><label>Số chữ số</label><input id="bf_pad" type="number" value="2" oninput="updateBatchPreview()"></div></div>`;
+  document.getElementById('batchFields').innerHTML=h;
+  updateBatchPreview();
+}
+function getBatchRule(){
+  if(_batchMode==='prefix'||_batchMode==='suffix')return {mode:_batchMode,text:(document.getElementById('bf_text')||{}).value||''};
+  if(_batchMode==='replace')return {mode:'replace',find:(document.getElementById('bf_find')||{}).value||'',to:(document.getElementById('bf_to')||{}).value||''};
+  if(_batchMode==='sequence')return {mode:'sequence',text:(document.getElementById('bf_text')||{}).value||'{name}_{n}',start:Number((document.getElementById('bf_start')||{}).value||1),pad:Number((document.getElementById('bf_pad')||{}).value||2)};
+}
+function applyRuleLocal(name,rule,seqRef){
+  const dot=name.lastIndexOf('.');const base=dot>0?name.slice(0,dot):name;const ext=dot>0?name.slice(dot):'';
+  if(rule.mode==='prefix')return (rule.text||'')+base+ext;
+  if(rule.mode==='suffix')return base+(rule.text||'')+ext;
+  if(rule.mode==='replace'){if(!rule.find)return name;return base.split(rule.find).join(rule.to||'')+ext;}
+  if(rule.mode==='sequence'){const num=String(seqRef.v).padStart(rule.pad||2,'0');seqRef.v++;return (rule.text||'{name}_{n}').replace('{name}',base).replace('{n}',num)+ext;}
+  return name;
+}
+function updateBatchPreview(){
+  const rule=getBatchRule();const files=[...S.files].sort((a,b)=>a.name.localeCompare(b.name,'vi',{numeric:true}));
+  const seqRef={v:rule.start||1};let changed=0;
+  const rows=files.map(f=>{const nn=applyRuleLocal(f.name,rule,seqRef);const diff=nn!==f.name;if(diff)changed++;
+    return `<div class="pv-row"><span class="old">${esc(f.name)}</span><span class="arrow">${I.chevR}</span><span class="new">${esc(nn)}</span></div>`;}).join('');
+  document.getElementById('batchPreview').innerHTML=changed?rows:`<div class="pv-empty">Chưa có thay đổi nào — nhập quy tắc ở trên</div>`;
+  const btn=document.getElementById('brBtn');if(btn){btn.disabled=!changed;btn.innerHTML=I.check+` Áp dụng (${changed})`;}
+}
+async function doBatchRename(){
+  const rule=getBatchRule();const btn=document.getElementById('brBtn');btn.disabled=true;btn.innerHTML=spin()+' Đang đổi tên…';
+  try{const r=await apiPost({action:'batchRename',folderId:S.curId,rule});closeDialog();toast(`Đã đổi tên ${r.count} tập tin`);await reloadKeepTree();}
+  catch(e){btn.disabled=false;btn.innerHTML=I.check+' Áp dụng';toast('Lỗi: '+(e.message||e),true);}
+}
+
+/* ---------- UPLOAD (pick + drag/drop + paste) ---------- */
+let _fileInput;
+function pickFiles(){
+  if(!_fileInput){_fileInput=document.createElement('input');_fileInput.type='file';_fileInput.multiple=true;_fileInput.style.display='none';
+    _fileInput.addEventListener('change',()=>{if(_fileInput.files.length)handleUpload([..._fileInput.files]);_fileInput.value='';});
+    document.body.appendChild(_fileInput);}
+  _fileInput.click();
+}
+const content=document.getElementById('content');
+let _dragDepth=0;
+content.addEventListener('dragenter',e=>{e.preventDefault();_dragDepth++;content.classList.add('dragover');});
+content.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
+content.addEventListener('dragleave',e=>{e.preventDefault();if(--_dragDepth<=0){_dragDepth=0;content.classList.remove('dragover');}});
+content.addEventListener('drop',e=>{e.preventDefault();_dragDepth=0;content.classList.remove('dragover');const fs=[...(e.dataTransfer.files||[])];if(fs.length)handleUpload(fs);});
+document.addEventListener('paste',e=>{const fs=[...(e.clipboardData?.items||[])].filter(i=>i.kind==='file').map(i=>i.getAsFile()).filter(Boolean);if(fs.length&&!document.getElementById('overlay').classList.contains('open'))handleUpload(fs);});
+
+function fileToB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=()=>rej(new Error('Đọc file lỗi'));r.readAsDataURL(f);});}
+async function handleUpload(files){
+  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic">${I.upload}</div><div class="ht"><h3>Tải lên ${files.length} tập tin</h3><p>Vào: ${esc((S.curPath[S.curPath.length-1]||{}).name||'')}</p></div></div>
+    <div class="dlg-body"><div class="uplist" id="upList">${files.map((f,i)=>`<div class="up-item go" id="up_${i}"><div class="ui-ic">${I[fileKind(f.type)]||I.file}</div><div class="ui-info"><b>${esc(f.name)}</b><div class="ui-bar"><i></i></div></div><span class="ui-st">chờ…</span></div>`).join('')}</div></div>
+    <div class="dlg-foot"><button class="btn ghost" id="upClose" onclick="closeDialog()" disabled>Đang tải…</button></div></div>`);
+  let ok=0,fail=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i],el=document.getElementById('up_'+i);
+    try{
+      el.querySelector('.ui-st').textContent='đang tải…';el.querySelector('.ui-bar i').style.width='40%';
+      const b64=await fileToB64(f);el.querySelector('.ui-bar i').style.width='70%';
+      await apiPost({action:'upload',folderId:S.curId,filename:f.name,mime:f.type||'application/octet-stream',data:b64});
+      el.classList.remove('go');el.classList.add('done');el.querySelector('.ui-bar i').style.width='100%';el.querySelector('.ui-st').innerHTML=I.check;ok++;
+    }catch(e){el.classList.remove('go');el.classList.add('err');el.querySelector('.ui-st').textContent='lỗi';fail++;}
+  }
+  const cl=document.getElementById('upClose');cl.disabled=false;cl.textContent='Xong';cl.classList.remove('ghost');cl.classList.add('primary');
+  toast(`Đã tải lên ${ok} tập tin${fail?`, ${fail} lỗi`:''}`,fail>0);
+  await reloadKeepTree(true);
+}
+
+/* ---------- RELOAD HELPERS ---------- */
+async function reloadKeepTree(silent){
+  try{const r=await apiGet({action:'list',id:S.curId});if(r&&r.ok){S.curPath=r.path||[];S.folders=r.folders||[];S.files=r.files||[];renderCrumbs();renderContent();loadStats(S.curId);}}catch(e){}
+  loadMarquee();
+}
+async function refreshTreeAndFolder(){
+  try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';}}catch(e){}
+  // nếu folder hiện tại bị xoá/di chuyển, fallback về root
+  await openFolder(S.curId||S.tree.id);
+  loadMarquee();
+}
+async function refreshAll(){
+  const b=document.getElementById('refreshBtn');b.classList.add('spin');
+  try{const r=await apiGet({action:'treeFresh'});if(r&&r.ok){S.tree=r.tree;renderTree();document.getElementById('treeMini').innerHTML=I.folder+' '+countNodes(S.tree)+' thư mục';await openFolder(S.curId||S.tree.id);}toast('Đã làm mới');}
+  catch(e){toast('Lỗi làm mới: '+(e.message||e),true);}
+  loadMarquee();b.classList.remove('spin');
+}
+
+/* ---------- LOG MARQUEE + PANEL ---------- */
+function logLine(l){
+  const at=l.atFolder?`<span class="at">tại <b>${esc(l.atFolder)}</b></span>`:'';
+  return `<div class="lb-item">${ACT_ICON[l.action]||I.info}<span class="who">${esc(l.pic)}</span> <span class="act">${esc(l.actionLabel||l.action)}</span> <span class="obj">${esc(l.target)}</span> ${at} <span class="tm">· ${fmtTime(l.time)}</span></div>`;
+}
+async function loadMarquee(){
+  try{
+    const r=await apiGet({action:'log',n:5});
+    if(r&&r.ok){
+      const logs=r.logs||[];
+      const m=document.getElementById('logMarquee');
+      if(!logs.length){m.innerHTML='<div class="lb-item"><span class="tm">Chưa có hoạt động nào được ghi nhận</span></div>';m.style.animation='none';return;}
+      const set=logs.map(logLine).join('');
+      m.innerHTML=set+set; // nhân đôi cho marquee liền mạch
+      m.style.animation='none';void m.offsetWidth;m.style.animation='marquee 48s linear infinite';
+    }
+  }catch(e){}
+}
+async function openLogPanel(){
+  document.getElementById('logPanel').classList.add('open');
+  const body=document.getElementById('logPanelBody');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">'+spin()+' Đang tải lịch sử…</div>';
+  try{
+    const r=await apiGet({action:'logAll',limit:200});
+    const logs=(r&&r.logs)||[];
+    if(!logs.length){body.innerHTML='<div class="empty" style="padding:50px 20px">'+I.info+'<b>Chưa có lịch sử</b><span>Các thao tác qua app sẽ hiện ở đây</span></div>';return;}
+    body.innerHTML=logs.map(l=>{
+      const c=ACT_COLOR[l.action]||'#3A5CAA';
+      return `<div class="logrow"><div class="lr-ava" style="background:${avaColor(l.pic)}">${initials(l.pic)}</div>
+        <div class="lr-info"><div class="l1"><span class="who">${esc(l.pic)}</span> <span class="act">${esc(l.actionLabel||l.action)}</span> <span class="obj">${esc(l.target)}</span></div>
+        <div class="l2">${l.atFolder?`<span class="at">${I.folder} ${esc(l.atFolder)}</span> ·`:''} ${fmtTime(l.time)} · <span style="color:#9aa8c2">${esc(l.email)}</span></div></div>
+        <div class="lr-ic" style="background:${c}">${ACT_ICON[l.action]||I.info}</div></div>`;
+    }).join('');
+  }catch(e){body.innerHTML='<div style="padding:30px;color:var(--danger)">Lỗi tải lịch sử: '+esc(e.message||e)+'</div>';}
+}
+function closeLogPanel(){document.getElementById('logPanel').classList.remove('open');}
+
+/* ---------- MISC ---------- */
+function onSearch(v){S.search=v.trim();renderContent();}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbBackdrop').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbBackdrop').classList.remove('open');}
+function spin(){return '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px"></span>';}
+function toast(msg,err){const t=document.getElementById('toast');t.className='toast'+(err?' err':' ok');t.innerHTML=(err?I.info:I.check)+'<span>'+esc(msg)+'</span>';t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),3200);}
+I.close='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('viewerOverlay').classList.contains('open'))closeViewer();else if(document.getElementById('overlay').classList.contains('open'))closeDialog();else if(document.getElementById('logPanel').classList.contains('open'))closeLogPanel();else closeCtx();}});
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
