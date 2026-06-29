@@ -379,7 +379,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <div class="tb-act">
       <button class="tb-btn stat-btn" onclick="openLogPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg><span>Lịch sử</span></button>
       <button class="tb-btn refresh" id="refreshBtn" onclick="refreshAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8M3 3v5h5"/></svg><span>Làm mới</span></button>
-      <div class="tb-user">
+      <div class="tb-user" onclick="changePic()" style="cursor:pointer" title="Đổi người dùng">
         <div class="tb-ava" id="userAva">?</div>
         <div class="u-info"><b id="userName">Đang tải…</b><small id="userEmail"></small></div>
       </div>
@@ -505,21 +505,18 @@ function avaColor(name){const cs=['#3A5CAA','#e07b39','#7c3aed','#16a34a','#0f8a
 function fileKind(mime){if(!mime)return 'other';if(mime.indexOf('image/')===0)return 'image';if(mime.indexOf('video/')===0)return 'video';if(mime==='application/pdf')return 'pdf';if(mime.indexOf('presentation')>=0)return 'slide';if(mime.indexOf('spreadsheet')>=0||mime.indexOf('excel')>=0)return 'sheet';if(mime.indexOf('document')>=0||mime.indexOf('word')>=0)return 'doc';return 'other';}
 const KIND_LABEL={image:'Hình ảnh',video:'Video',pdf:'PDF',slide:'Slide',sheet:'Bảng tính',doc:'Tài liệu',other:'Tập tin',folder:'Thư mục'};
 
-/* ---------- API (GET=jsonp, POST=fetch) ---------- */
-let _seq=0;
-function apiGet(params){
-  return new Promise((resolve,reject)=>{
-    const cb='__dm_cb_'+(_seq++),s=document.createElement('script');
-    const to=setTimeout(()=>{cleanup();reject(new Error('Hết thời gian — kiểm tra quyền Web App'))},45000);
-    function cleanup(){clearTimeout(to);delete window[cb];s.remove()}
-    window[cb]=d=>{cleanup();resolve(d)};
-    const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-    s.src=GAS_URL+'?'+qs+'&callback='+cb;
-    s.onerror=()=>{cleanup();reject(new Error('Không gọi được Web App'))};
-    document.body.appendChild(s);
-  });
+/* ---------- API (GET + POST đều dùng fetch) ---------- */
+async function apiGet(params){
+  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  const r=await fetch(GAS_URL+'?'+qs,{method:'GET',redirect:'follow'});
+  const txt=await r.text();
+  let j;
+  try{j=JSON.parse(txt);}catch(e){throw new Error('Không gọi được Web App (phản hồi không hợp lệ)');}
+  return j;
 }
 async function apiPost(body){
+  // đính kèm người thao tác để backend ghi log đúng tên khi không lấy được email tự động
+  if(S.user&&S.user.pic&&!body.actor)body.actor={pic:S.user.pic,email:S.user.email||''};
   // Content-Type text/plain → tránh CORS preflight (OPTIONS) mà GAS không trả.
   // GAS doPost trả JSON; redirect:'follow' để theo 302 sang googleusercontent.
   const r=await fetch(GAS_URL,{
@@ -542,7 +539,11 @@ async function init(){
     toast('Chưa điền GAS_URL — mở index.html dán link Web App /exec',true);return;
   }
   try{
-    apiGet({action:'whoami'}).then(r=>{if(r&&r.ok)setUser(r)});
+    // whoami: nếu deploy "Anyone with Google account" sẽ có email; nếu "Anyone" → rỗng
+    apiGet({action:'whoami'}).then(r=>{
+      if(r&&r.ok&&r.email){setUser(r);}
+      else{loadSavedPic();} // không có email → dùng PIC đã chọn / hỏi chọn
+    }).catch(()=>loadSavedPic());
     const r=await apiGet({action:'tree'});
     if(!r||!r.ok)throw new Error(r&&r.error||'Không tải được cây thư mục');
     S.tree=r.tree;
@@ -563,6 +564,37 @@ function setUser(r){
   document.getElementById('userAva').textContent=initials(S.user.pic);
   document.getElementById('userAva').style.background='var(--yellow)';
 }
+/* Danh sách PIC MMH (khi deploy "Anyone" không lấy được email tự động) */
+const PIC_LIST=[
+  ['Giang','mmh.product@manimedicalhanoi.com'],['Thuong','marketing.mmh@manimedicalhanoi.com'],
+  ['Duc Anh','marketing.mmh1@manimedicalhanoi.com'],['Quynh Anh','mmh.admin@manimedicalhanoi.com'],
+  ['Trang','marketing.mmh2@manimedicalhanoi.com'],['Minh Viet','mmh.hanoi@manimedicalhanoi.com'],
+  ['Vinh','mmh.danang@manimedicalhanoi.com'],['Phuong','mmh.saigon@manimedicalhanoi.com'],
+  ['Viet Ha','mmh.hanoi2@manimedicalhanoi.com'],['Khang','mmh.saigon2@manimedicalhanoi.com'],
+  ['Tuyen','tt.tuyen@manimedicalhanoi.com'],['Nguyen Ha','nt.ha@manimedicalhanoi.com'],
+  ['Hoa','vtt.hoa@manimedicalhanoi.com'],['Dam Ha','mmh.backoffice@manimedicalhanoi.com'],
+  ['Hau','mmh.backoffice1@manimedicalhanoi.com'],['Ngoc','mmh.hanoi1@manimedicalhanoi.com'],
+  ['Dam Viet','mmh.order@manimedicalhanoi.com']
+];
+function loadSavedPic(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem('mmh_dm_pic')||'null');}catch(e){}
+  if(saved&&saved.pic){setUser({email:saved.email||'',pic:saved.pic});}
+  else{promptPic();}
+}
+function promptPic(){
+  const opts=PIC_LIST.map(([n,e])=>`<div class="mt-row" onclick="choosePic('${n}','${e}',this)"><div class="lr-ava" style="width:30px;height:30px;font-size:12px;background:${avaColor(n)}">${initials(n)}</div><span>${n}</span></div>`).join('');
+  showDialog(`<div class="dialog"><div class="dlg-head"><div class="dlg-ic">${I.eye||''}</div><div class="ht"><h3>Bạn là ai?</h3><p>Chọn tên để ghi nhật ký hoạt động</p></div></div>
+    <div class="dlg-body"><div class="movetree" style="max-height:340px">${opts}</div></div></div>`);
+}
+function choosePic(name,email,el){
+  S.user={email,pic:name};
+  try{localStorage.setItem('mmh_dm_pic',JSON.stringify({pic:name,email}));}catch(e){}
+  document.getElementById('userName').textContent=name;
+  document.getElementById('userEmail').textContent=email;
+  document.getElementById('userAva').textContent=initials(name);
+  closeDialog();toast('Xin chào '+name);
+}
+function changePic(){promptPic();}
 function countNodes(n){let c=0;(function w(x){(x.folders||[]).forEach(f=>{c++;w(f)})})(n);return c;}
 
 /* ---------- TREE SIDEBAR ---------- */
